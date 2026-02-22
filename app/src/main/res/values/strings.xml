@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Pomodoro Prime</string>
+    
+    <!-- Navigation -->
+    <string name="nav_timer">Timer</string>
+    <string name="nav_tasks">Tasks</string>
+    <string name="nav_statistics">Statistics</string>
+    <string name="nav_settings">Settings</string>
+    
+    <!-- Timer -->
+    <string name="timer_focus">Focus</string>
+    <string name="timer_short_break">Short Break</string>
+    <string name="timer_long_break">Long Break</string>
+    <string name="timer_start">Start</string>
+    <string name="timer_pause">Pause</string>
+    <string name="timer_reset">Reset</string>
+    <string name="timer_stop">Stop</string>
+    <string name="timer_skip">Skip</string>
+    <string name="timer_cycle">Cycle %1$d/4</string>
+    <string name="timer_completed_pomodoros">Completed: %1$d</string>
+    <string name="timer_select_task">Select Task</string>
+    <string name="timer_change_task">Change Task</string>
+    <string name="timer_no_task">No task selected</string>
+    
+    <!-- Tasks -->
+    <string name="tasks_title">Tasks</string>
+    <string name="tasks_add">Add Task</string>
+    <string name="tasks_edit">Edit Task</string>
+    <string name="tasks_delete">Delete Task</string>
+    <string name="tasks_complete">Mark as Complete</string>
+    <string name="tasks_incomplete">Mark as Incomplete</string>
+    <string name="tasks_active">Active</string>
+    <string name="tasks_completed">Completed</string>
+    <string name="tasks_empty_title">No tasks yet</string>
+    <string name="tasks_empty_message">Tap the + button to add your first task</string>
+    <string name="task_title_hint">Task title</string>
+    <string name="task_description_hint">Description (optional)</string>
+    <string name="task_pomodoros_hint">Estimated pomodoros</string>
+    <string name="task_delete_confirm">Are you sure you want to delete \"%1$s\"?</string>
+    <string name="task_pomodoro_progress">%1$d/%2$d</string>
+    
+    <!-- Statistics -->
+    <string name="statistics_title">Statistics</string>
+    <string name="statistics_total">Total</string>
+    <string name="statistics_today">Today</string>
+    <string name="statistics_this_week">This Week</string>
+    <string name="statistics_this_month">This Month</string>
+    <string name="statistics_sessions">Sessions</string>
+    <string name="statistics_duration">Duration</string>
+    <string name="statistics_refresh">Refresh</string>
+    
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_timer">Timer</string>
+    <string name="settings_work_duration">Work Duration</string>
+    <string name="settings_short_break">Short Break</string>
+    <string name="settings_long_break">Long Break</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_sound">Sound</string>
+    <string name="settings_vibration">Vibration</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_dark_mode">Dark Mode</string>
+    <string name="settings_auto_start">Auto Start</string>
+    <string name="settings_auto_start_breaks">Auto Start Breaks</string>
+    <string name="settings_auto_start_work">Auto Start Work</string>
+    <string name="settings_reset">Reset to Defaults</string>
+    <string name="settings_minutes">min</string>
+    
+    <!-- Notifications -->
+    <string name="notification_channel_name">Pomodoro Timer</string>
+    <string name="notification_channel_description">Notifications for Pomodoro timer</string>
+    <string name="notification_work_complete">Focus Session Complete!</string>
+    <string name="notification_short_break_complete">Short Break Complete!</string>
+    <string name="notification_long_break_complete">Long Break Complete!</string>
+    <string name="notification_time_for_break">Time for a short break!</string>
+    <string name="notification_ready_to_focus">Ready to focus again?</string>
+    <string name="notification_ready_new_cycle">Ready to start a new cycle?</string>
+    <string name="notification_great_job">Great job!</string>
+    
+    <!-- Dialogs -->
+    <string name="dialog_add_task_title">Add New Task</string>
+    <string name="dialog_edit_task_title">Edit Task</string>
+    <string name="dialog_add">Add</string>
+    <string name="dialog_save">Save</string>
+    <string name="dialog_cancel">Cancel</string>
+    <string name="dialog_delete">Delete</string>
+    <string name="dialog_confirm">Confirm</string>
+    
+    <!-- Common -->
+    <string name="common_loading">Loading…</string>
+    <string name="common_error">An error occurred</string>
+    <string name="common_retry">Retry</string>
+    <string name="common_ok">OK</string>
+    <string name="common_yes">Yes</string>
+    <string name="common_no">No</string>
+</resources>

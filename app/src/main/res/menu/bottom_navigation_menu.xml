@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/timerFragment"
+        android:icon="@drawable/ic_timer"
+        android:title="@string/nav_timer" />
+    
+    <item
+        android:id="@+id/tasksFragment"
+        android:icon="@drawable/ic_check_circle_outline"
+        android:title="@string/nav_tasks" />
+    
+    <item
+        android:id="@+id/statisticsFragment"
+        android:icon="@drawable/ic_timer"
+        android:title="@string/nav_statistics" />
+    
+    <item
+        android:id="@+id/settingsFragment"
+        android:icon="@android:drawable/ic_menu_preferences"
+        android:title="@string/nav_settings" />
+</menu>
