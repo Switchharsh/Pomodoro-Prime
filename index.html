@@ -1,323 +1,342 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="A simple, distraction-free Pomodoro timer for focused work sessions">
-    <meta name="theme-color" content="#2D5A27">
-    <title>Pomodoro Prime - Forest Focus Timer</title>
-    <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="description" content="A simple, distraction-free Pomodoro timer for focused work sessions">
+<meta name="theme-color" content="#2D5A27">
+<title>Pomodoro Prime - Forest Focus Timer</title>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Sky Canvas for Day/Night Cycle -->
-    <canvas id="skyCanvas" class="sky-canvas"></canvas>
-    
-    <!-- Floating Particles Canvas -->
-    <canvas id="particlesCanvas" class="particles-canvas"></canvas>
-    
-    <div class="container">
-        <header class="header">
-            <div class="header-top">
-                <h1 class="title">🌲 Pomodoro Prime</h1>
-                <div class="header-controls">
-                    <button class="icon-btn" id="settingsBtn" aria-label="Settings">
-                        <span>⚙️</span>
-                    </button>
-                    <button class="icon-btn" id="shortcutsBtn" aria-label="Keyboard shortcuts">
-                        <span>⌨️</span>
-                    </button>
-                    <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
-                        <span class="theme-icon">🌙</span>
-                    </button>
-                </div>
-            </div>
-            <p class="subtitle">Stay focused, take breaks, repeat</p>
-        </header>
+<!-- Sky Canvas for Day/Night Cycle -->
+<canvas id="skyCanvas" class="sky-canvas" aria-hidden="true"></canvas>
+<!-- Floating Particles Canvas -->
+<canvas id="particlesCanvas" class="particles-canvas" aria-hidden="true"></canvas>
 
-        <main class="main">
-            <!-- Timer Display -->
-            <section class="timer-section">
-                <div class="timer-type" id="timerType">Focus</div>
-                <div class="timer-display" id="timerDisplay">25:00</div>
-                
-                <!-- Timer Info -->
-                <div class="timer-info">
-                    <div class="timer-stat">
-                        <span class="timer-stat-label">Progress</span>
-                        <span class="timer-stat-value" id="progressPercent">0%</span>
-                    </div>
-                    <div class="timer-stat">
-                        <span class="timer-stat-label">Elapsed</span>
-                        <span class="timer-stat-value" id="timeElapsed">0:00</span>
-                    </div>
-                    <div class="timer-stat">
-                        <span class="timer-stat-label">Remaining</span>
-                        <span class="timer-stat-value" id="timeRemaining">25:00</span>
-                    </div>
-                </div>
-                
-                <div class="timer-progress">
-                    <div class="progress-ring" id="progressRing">
-                        <svg class="progress-svg" viewBox="0 0 100 100">
-                            <circle class="progress-bg" cx="50" cy="50" r="45" fill="none" stroke-width="6"/>
-                            <circle class="progress-bar" id="progressBar" cx="50" cy="50" r="45" fill="none" stroke-width="6"
-                                stroke-dasharray="283" stroke-dashoffset="0"/>
-                            <!-- Celestial Body (Sun/Moon) inside timer ring -->
-                            <g id="celestialBody" class="celestial-body">
-                                <circle id="celestialCircle" cx="50" cy="50" r="8" fill="currentColor"/>
-                            </g>
-                        </svg>
-                    </div>
-                </div>
-                
-                <!-- Cycle Indicator -->
-                <div class="cycle-indicator">
-                    <span id="currentCycle">1/4</span>
-                </div>
-
-                <!-- Task Input -->
-                <div class="task-input">
-                    <input type="text" id="taskInput" placeholder="What are you working on?" 
-                           maxlength="60" aria-label="Current task">
-                </div>
-
-                <!-- Controls -->
-                <div class="controls">
-                    <button class="btn btn-primary" id="startBtn" aria-label="Start timer">
-                        <span class="btn-icon">▶</span>
-                        <span class="btn-text">Start</span>
-                    </button>
-                    <button class="btn btn-secondary" id="resetBtn" aria-label="Reset timer">
-                        <span class="btn-icon">↺</span>
-                        <span class="btn-text">Reset</span>
-                    </button>
-                    <button class="btn btn-secondary" id="skipBtn" aria-label="Skip to next mode">
-                        <span class="btn-icon">⏭</span>
-                        <span class="btn-text">Skip</span>
-                    </button>
-                </div>
-
-                <!-- Mode Toggle -->
-                <div class="mode-toggle">
-                    <button class="mode-btn active" data-mode="focus" aria-label="Focus mode">
-                        <span class="mode-icon">🌳</span>
-                        <span class="mode-label">Focus</span>
-                    </button>
-                    <button class="mode-btn" data-mode="short" aria-label="Short break mode">
-                        <span class="mode-icon">🌿</span>
-                        <span class="mode-label">Short Break</span>
-                    </button>
-                    <button class="mode-btn" data-mode="long" aria-label="Long break mode">
-                        <span class="mode-icon">🍃</span>
-                        <span class="mode-label">Long Break</span>
-                    </button>
-                </div>
-
-                <!-- Timer Presets -->
-                <div class="presets-container">
-                    <h3 class="presets-title">Quick Presets</h3>
-                    <div class="presets-buttons">
-                        <button class="preset-btn" data-minutes="15">15m</button>
-                        <button class="preset-btn" data-minutes="25">25m</button>
-                        <button class="preset-btn" data-minutes="45">45m</button>
-                        <button class="preset-btn" data-minutes="60">60m</button>
-                    </div>
-                    <div class="custom-duration">
-                        <input type="number" id="customMinutes" min="1" max="120" placeholder="Custom" 
-                               aria-label="Custom duration in minutes">
-                        <button class="btn-small" id="customDurationBtn">Set</button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Task Management -->
-            <section class="tasks-section">
-                <h2 class="section-title">📋 Tasks</h2>
-                <div class="task-input-group">
-                    <input type="text" id="newTaskInput" placeholder="Add a new task..." 
-                           maxlength="100" aria-label="New task">
-                    <button class="btn-small" id="addTaskBtn">Add</button>
-                </div>
-                <ul class="task-list" id="taskList">
-                    <!-- Tasks will be dynamically added here -->
-                </ul>
-            </section>
-
-            <!-- Statistics Section -->
-            <section class="stats-section">
-                <h2 class="stats-title">📊 Today's Progress</h2>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-value" id="statPomodoros">0</div>
-                        <div class="stat-label">Pomodoros</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="statFocusTime">0m</div>
-                        <div class="stat-label">Focus Time</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="statStreak">0</div>
-                        <div class="stat-label">Day Streak</div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Sound Settings -->
-            <section class="sound-section">
-                <h2 class="sound-title">🔊 Sound Settings</h2>
-                <div class="sound-controls">
-                    <div class="sound-option">
-                        <label class="sound-label">Volume</label>
-                        <input type="range" id="volumeSlider" min="0" max="100" value="50" class="volume-slider">
-                    </div>
-                    <div class="sound-option">
-                        <label class="sound-label">Alarm Sound</label>
-                        <div class="sound-buttons">
-                            <button class="sound-btn active" data-sound="chime">🔔 Chime</button>
-                            <button class="sound-btn" data-sound="birds">🐦 Birds</button>
-                            <button class="sound-btn" data-sound="rain">🌧️ Rain</button>
-                            <button class="sound-btn" data-sound="stream">💧 Stream</button>
-                        </div>
-                    </div>
-                    <div class="sound-option">
-                        <label class="toggle-label">
-                            <input type="checkbox" id="ambientSoundToggle">
-                            <span>Ambient Sounds</span>
-                        </label>
-                    </div>
-                    <button class="test-sound-btn" id="testSoundBtn">🎵 Test Sound</button>
-                </div>
-            </section>
-
-            <!-- Theme Settings -->
-            <section class="theme-section">
-                <h2 class="theme-title">🎨 Theme</h2>
-                <div class="theme-buttons">
-                    <button class="theme-option active" data-theme="forest">
-                        <span class="theme-emoji">🌲</span>
-                        <span class="theme-name">Forest</span>
-                    </button>
-                    <button class="theme-option" data-theme="ocean">
-                        <span class="theme-emoji">🌊</span>
-                        <span class="theme-name">Ocean</span>
-                    </button>
-                    <button class="theme-option" data-theme="mountain">
-                        <span class="theme-emoji">🏔️</span>
-                        <span class="theme-name">Mountain</span>
-                    </button>
-                    <button class="theme-option" data-theme="space">
-                        <span class="theme-emoji">🌌</span>
-                        <span class="theme-name">Space</span>
-                    </button>
-                </div>
-                <div class="theme-option">
-                    <label class="toggle-label">
-                        <input type="checkbox" id="highContrastToggle">
-                        <span>High Contrast</span>
-                    </label>
-                </div>
-            </section>
-
-            <!-- Advanced Options -->
-            <section class="options-section">
-                <h2 class="options-title">⚙️ Options</h2>
-                <div class="options-list">
-                    <label class="toggle-label">
-                        <input type="checkbox" id="autoStartToggle">
-                        <span>Auto-start next timer</span>
-                    </label>
-                    <label class="toggle-label">
-                        <input type="checkbox" id="skipBreaksToggle">
-                        <span>Skip breaks</span>
-                    </label>
-                    <label class="toggle-label">
-                        <input type="checkbox" id="tickSoundToggle">
-                        <span>Tick sound every minute</span>
-                    </label>
-                </div>
-            </section>
-
-            <!-- Quick Tips -->
-            <section class="tips-section">
-                <h2 class="tips-title">🌱 Quick Tips</h2>
-                <ul class="tips-list">
-                    <li>Grow one habit at a time</li>
-                    <li>Nurture your focus zone</li>
-                    <li>Root out distractions</li>
-                    <li>Breathe deep like the forest</li>
-                </ul>
-            </section>
-        </main>
+<div class="container">
+  <header class="header">
+    <div class="header-top">
+      <h1 class="title">🌲 Pomodoro Prime</h1>
+      <div class="header-controls">
+        <button class="icon-btn" id="settingsBtn" aria-label="Open settings" aria-expanded="false">
+          <span aria-hidden="true">⚙️</span>
+        </button>
+        <button class="icon-btn" id="shortcutsBtn" aria-label="Show keyboard shortcuts">
+          <span aria-hidden="true">⌨️</span>
+        </button>
+        <button class="icon-btn" id="themeToggle" aria-label="Toggle dark mode">
+          <span class="theme-icon" aria-hidden="true">🌙</span>
+        </button>
+      </div>
     </div>
+    <p class="subtitle">Stay focused, take breaks, repeat</p>
+  </header>
 
-    <!-- Onboarding Modal -->
-    <div class="modal" id="onboardingModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Welcome to Pomodoro Prime! 🌲</h2>
-                <button class="modal-close" id="closeOnboarding">✕</button>
-            </div>
-            <div class="modal-body">
-                <p class="modal-text">Your journey to focused productivity starts here. Here's how to get started:</p>
-                <div class="onboarding-steps">
-                    <div class="step">
-                        <span class="step-number">1</span>
-                        <p class="step-text">Choose your focus time and click <strong>Start</strong></p>
-                    </div>
-                    <div class="step">
-                        <span class="step-number">2</span>
-                        <p class="step-text">Work until the timer ends (watch the day/night cycle!)</p>
-                    </div>
-                    <div class="step">
-                        <span class="step-number">3</span>
-                        <p class="step-text">Take a short break, then repeat</p>
-                    </div>
-                    <div class="step">
-                        <span class="step-number">4</span>
-                        <p class="step-text">After 4 pomodoros, enjoy a long break!</p>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-primary" id="startJourneyBtn">Start My Journey</button>
-                </div>
-            </div>
+  <main class="main">
+    <!-- Timer Display -->
+    <section class="timer-section" aria-live="polite">
+      <div class="timer-type" id="timerType" role="status">Focus</div>
+      
+      <div class="timer-display-container">
+        <div class="timer-display" id="timerDisplay" aria-label="Time remaining">25:00</div>
+        
+        <!-- Timer Info -->
+        <div class="timer-info">
+          <div class="timer-stat">
+            <span class="timer-stat-label">Progress</span>
+            <span class="timer-stat-value" id="progressPercent">0%</span>
+          </div>
+          <div class="timer-stat">
+            <span class="timer-stat-label">Elapsed</span>
+            <span class="timer-stat-value" id="timeElapsed">0:00</span>
+          </div>
+          <div class="timer-stat">
+            <span class="timer-stat-label">Remaining</span>
+            <span class="timer-stat-value" id="timeRemaining">25:00</span>
+          </div>
         </div>
-    </div>
+      </div>
 
-    <!-- Keyboard Shortcuts Modal -->
-    <div class="modal" id="shortcutsModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">⌨️ Keyboard Shortcuts</h2>
-                <button class="modal-close" id="closeShortcuts">✕</button>
-            </div>
-            <div class="modal-body">
-                <div class="shortcuts-list">
-                    <div class="shortcut-item">
-                        <kbd class="key">Space</kbd>
-                        <span class="shortcut-desc">Start / Pause timer</span>
-                    </div>
-                    <div class="shortcut-item">
-                        <kbd class="key">R</kbd>
-                        <span class="shortcut-desc">Reset timer</span>
-                    </div>
-                    <div class="shortcut-item">
-                        <kbd class="key">T</kbd>
-                        <span class="shortcut-desc">Toggle dark/light mode</span>
-                    </div>
-                    <div class="shortcut-item">
-                        <kbd class="key">S</kbd>
-                        <span class="shortcut-desc">Skip to next mode</span>
-                    </div>
-                    <div class="shortcut-item">
-                        <kbd class="key">Esc</kbd>
-                        <span class="shortcut-desc">Close modals</span>
-                    </div>
-                </div>
-            </div>
+      <div class="timer-progress">
+        <div class="progress-ring" id="progressRing">
+          <svg class="progress-svg" viewBox="0 0 100 100" role="img" aria-label="Timer progress">
+            <!-- Mini sky gradient background inside ring -->
+            <defs>
+              <linearGradient id="timerSkyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" style="stop-color:#87CEEB;stop-opacity:1" />
+                <stop offset="50%" style="stop-color:#E0F7FA;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#FFF9C4;stop-opacity:1" />
+              </linearGradient>
+              <radialGradient id="celestialGlow">
+                <stop offset="0%" style="stop-color:#FFD700;stop-opacity:0.8" />
+                <stop offset="100%" style="stop-color:#FFD700;stop-opacity:0" />
+              </radialGradient>
+            </defs>
+            
+            <!-- Background circle with sky gradient -->
+            <circle class="progress-bg" cx="50" cy="50" r="45" fill="url(#timerSkyGradient)" stroke="none"/>
+            
+            <!-- Progress ring -->
+            <circle class="progress-track" cx="50" cy="50" r="45" fill="none" stroke-width="6"/>
+            <circle class="progress-bar" id="progressBar" cx="50" cy="50" r="45" fill="none" stroke-width="6"
+              stroke-dasharray="283" stroke-dashoffset="0" stroke-linecap="round"/>
+            
+            <!-- Celestial Body (Sun/Moon) with glow -->
+            <g id="celestialBody" class="celestial-body">
+              <circle id="celestialGlowEffect" cx="50" cy="50" r="20" fill="url(#celestialGlow)" opacity="0"/>
+              <circle id="celestialCircle" cx="50" cy="50" r="8" fill="#FFD700"/>
+            </g>
+          </svg>
         </div>
-    </div>
+      </div>
 
-    <script src="script.js"></script>
+      <!-- Cycle Indicator -->
+      <div class="cycle-indicator" aria-label="Pomodoro cycle">
+        <span id="currentCycle">1/4</span>
+        <span class="cycle-dots" aria-hidden="true">
+          <span class="cycle-dot active"></span>
+          <span class="cycle-dot"></span>
+          <span class="cycle-dot"></span>
+          <span class="cycle-dot"></span>
+        </span>
+      </div>
+
+      <!-- Task Input -->
+      <div class="task-input">
+        <label for="taskInput" class="visually-hidden">Current task</label>
+        <input type="text" id="taskInput" placeholder="What are you working on?" maxlength="60" aria-label="Current task">
+      </div>
+
+      <!-- Controls -->
+      <div class="controls" role="group" aria-label="Timer controls">
+        <button class="btn btn-primary" id="startBtn" aria-label="Start timer">
+          <span class="btn-icon" aria-hidden="true">▶</span>
+          <span class="btn-text">Start</span>
+        </button>
+        <button class="btn btn-secondary" id="resetBtn" aria-label="Reset timer">
+          <span class="btn-icon" aria-hidden="true">↺</span>
+          <span class="btn-text">Reset</span>
+        </button>
+        <button class="btn btn-secondary" id="skipBtn" aria-label="Skip to next mode">
+          <span class="btn-icon" aria-hidden="true">⏭</span>
+          <span class="btn-text">Skip</span>
+        </button>
+      </div>
+
+      <!-- Mode Toggle -->
+      <div class="mode-toggle" role="tablist" aria-label="Timer mode">
+        <button class="mode-btn active" data-mode="focus" role="tab" aria-selected="true" aria-label="Focus mode">
+          <span class="mode-icon" aria-hidden="true">🌳</span>
+          <span class="mode-label">Focus</span>
+        </button>
+        <button class="mode-btn" data-mode="short" role="tab" aria-selected="false" aria-label="Short break mode">
+          <span class="mode-icon" aria-hidden="true">🌿</span>
+          <span class="mode-label">Short</span>
+        </button>
+        <button class="mode-btn" data-mode="long" role="tab" aria-selected="false" aria-label="Long break mode">
+          <span class="mode-icon" aria-hidden="true">🍃</span>
+          <span class="mode-label">Long</span>
+        </button>
+      </div>
+
+      <!-- Timer Presets -->
+      <div class="presets-container">
+        <h3 class="presets-title">Quick Presets</h3>
+        <div class="presets-buttons">
+          <button class="preset-btn" data-minutes="15" aria-label="Set timer to 15 minutes">15m</button>
+          <button class="preset-btn active" data-minutes="25" aria-label="Set timer to 25 minutes">25m</button>
+          <button class="preset-btn" data-minutes="45" aria-label="Set timer to 45 minutes">45m</button>
+          <button class="preset-btn" data-minutes="60" aria-label="Set timer to 60 minutes">60m</button>
+        </div>
+        <div class="custom-duration">
+          <label for="customMinutes" class="visually-hidden">Custom duration in minutes</label>
+          <input type="number" id="customMinutes" min="1" max="120" placeholder="Custom" aria-label="Custom duration in minutes">
+          <button class="btn-small" id="customDurationBtn" aria-label="Set custom duration">Set</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Task Management -->
+    <section class="tasks-section">
+      <h2 class="section-title">📋 Tasks</h2>
+      <div class="task-input-group">
+        <label for="newTaskInput" class="visually-hidden">Add a new task</label>
+        <input type="text" id="newTaskInput" placeholder="Add a new task..." maxlength="100" aria-label="New task">
+        <button class="btn-small" id="addTaskBtn" aria-label="Add task">Add</button>
+      </div>
+      <ul class="task-list" id="taskList" role="list" aria-label="Task list">
+        <!-- Tasks dynamically added -->
+      </ul>
+    </section>
+
+    <!-- Statistics Section -->
+    <section class="stats-section">
+      <h2 class="stats-title">📊 Today's Progress</h2>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-value" id="statPomodoros" aria-label="Completed pomodoros">0</div>
+          <div class="stat-label">Pomodoros</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="statFocusTime" aria-label="Total focus time">0m</div>
+          <div class="stat-label">Focus Time</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="statStreak" aria-label="Day streak">0</div>
+          <div class="stat-label">Day Streak</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sound Settings (Simplified) -->
+    <section class="sound-section">
+      <h2 class="sound-title">🔔 Notification</h2>
+      <div class="sound-controls">
+        <div class="sound-option">
+          <label for="volumeSlider" class="sound-label">Volume</label>
+          <input type="range" id="volumeSlider" min="0" max="100" value="50" class="volume-slider" aria-label="Notification volume">
+        </div>
+        <button class="test-sound-btn" id="testSoundBtn" aria-label="Test notification sound">🎵 Test Sound</button>
+      </div>
+    </section>
+
+    <!-- Theme Settings -->
+    <section class="theme-section">
+      <h2 class="theme-title">🎨 Theme</h2>
+      <div class="theme-buttons">
+        <button class="theme-option active" data-theme="forest" aria-label="Forest theme">
+          <span class="theme-emoji" aria-hidden="true">🌲</span>
+          <span class="theme-name">Forest</span>
+        </button>
+        <button class="theme-option" data-theme="ocean" aria-label="Ocean theme">
+          <span class="theme-emoji" aria-hidden="true">🌊</span>
+          <span class="theme-name">Ocean</span>
+        </button>
+        <button class="theme-option" data-theme="mountain" aria-label="Mountain theme">
+          <span class="theme-emoji" aria-hidden="true">🏔️</span>
+          <span class="theme-name">Mountain</span>
+        </button>
+        <button class="theme-option" data-theme="space" aria-label="Space theme">
+          <span class="theme-emoji" aria-hidden="true">🌌</span>
+          <span class="theme-name">Space</span>
+        </button>
+      </div>
+      <div class="theme-option">
+        <label class="toggle-label">
+          <input type="checkbox" id="highContrastToggle" aria-label="Enable high contrast mode">
+          <span>High Contrast</span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Advanced Options (Collapsible) -->
+    <section class="options-section">
+      <button class="options-toggle" id="optionsToggle" aria-expanded="false" aria-controls="optionsList">
+        <span>⚙️ Advanced Options</span>
+        <span class="toggle-icon" aria-hidden="true">▼</span>
+      </button>
+      <div class="options-list" id="optionsList" hidden>
+        <label class="toggle-label">
+          <input type="checkbox" id="autoStartToggle">
+          <span>Auto-start next timer</span>
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="skipBreaksToggle">
+          <span>Skip breaks</span>
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="tickSoundToggle">
+          <span>Tick sound every minute</span>
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="focusModeToggle">
+          <span>Focus Mode (hide non-essentials)</span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Quick Tips -->
+    <section class="tips-section">
+      <h2 class="tips-title">🌱 Quick Tips</h2>
+      <ul class="tips-list">
+        <li>Grow one habit at a time</li>
+        <li>Nurture your focus zone</li>
+        <li>Root out distractions</li>
+        <li>Breathe deep like the forest</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+<!-- Onboarding Modal -->
+<div class="modal" id="onboardingModal" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title" id="onboardingTitle">Welcome to Pomodoro Prime! 🌲</h2>
+      <button class="modal-close" id="closeOnboarding" aria-label="Close welcome message">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-text">Your journey to focused productivity starts here:</p>
+      <div class="onboarding-steps">
+        <div class="step">
+          <span class="step-number">1</span>
+          <p class="step-text">Choose focus time and click <strong>Start</strong></p>
+        </div>
+        <div class="step">
+          <span class="step-number">2</span>
+          <p class="step-text">Work until timer ends (watch the sun/moon cycle!)</p>
+        </div>
+        <div class="step">
+          <span class="step-number">3</span>
+          <p class="step-text">Take a short break, then repeat</p>
+        </div>
+        <div class="step">
+          <span class="step-number">4</span>
+          <p class="step-text">After 4 pomodoros, enjoy a long break!</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="startJourneyBtn">Start My Journey</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Keyboard Shortcuts Modal -->
+<div class="modal" id="shortcutsModal" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title" id="shortcutsTitle">⌨️ Keyboard Shortcuts</h2>
+      <button class="modal-close" id="closeShortcuts" aria-label="Close shortcuts">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="shortcuts-list">
+        <div class="shortcut-item">
+          <kbd class="key">Space</kbd>
+          <span class="shortcut-desc">Start / Pause timer</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd class="key">R</kbd>
+          <span class="shortcut-desc">Reset timer</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd class="key">T</kbd>
+          <span class="shortcut-desc">Toggle dark mode</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd class="key">S</kbd>
+          <span class="shortcut-desc">Skip to next mode</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd class="key">Esc</kbd>
+          <span class="shortcut-desc">Close modals</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
