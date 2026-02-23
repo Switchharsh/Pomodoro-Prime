@@ -19,9 +19,17 @@
         <header class="header">
             <div class="header-top">
                 <h1 class="title">🌲 Pomodoro Prime</h1>
-                <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle theme">
-                    <span class="theme-icon">🌙</span>
-                </button>
+                <div class="header-controls">
+                    <button class="icon-btn" id="settingsBtn" aria-label="Settings">
+                        <span>⚙️</span>
+                    </button>
+                    <button class="icon-btn" id="shortcutsBtn" aria-label="Keyboard shortcuts">
+                        <span>⌨️</span>
+                    </button>
+                    <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+                        <span class="theme-icon">🌙</span>
+                    </button>
+                </div>
             </div>
             <p class="subtitle">Stay focused, take breaks, repeat</p>
         </header>
@@ -31,12 +39,33 @@
             <section class="timer-section">
                 <div class="timer-type" id="timerType">Focus</div>
                 <div class="timer-display" id="timerDisplay">25:00</div>
+                
+                <!-- Timer Info -->
+                <div class="timer-info">
+                    <div class="timer-stat">
+                        <span class="timer-stat-label">Progress</span>
+                        <span class="timer-stat-value" id="progressPercent">0%</span>
+                    </div>
+                    <div class="timer-stat">
+                        <span class="timer-stat-label">Elapsed</span>
+                        <span class="timer-stat-value" id="timeElapsed">0:00</span>
+                    </div>
+                    <div class="timer-stat">
+                        <span class="timer-stat-label">Remaining</span>
+                        <span class="timer-stat-value" id="timeRemaining">25:00</span>
+                    </div>
+                </div>
+                
                 <div class="timer-progress">
                     <div class="progress-ring" id="progressRing">
                         <svg class="progress-svg" viewBox="0 0 100 100">
                             <circle class="progress-bg" cx="50" cy="50" r="45" fill="none" stroke-width="6"/>
                             <circle class="progress-bar" id="progressBar" cx="50" cy="50" r="45" fill="none" stroke-width="6"
                                 stroke-dasharray="283" stroke-dashoffset="0"/>
+                            <!-- Celestial Body (Sun/Moon) inside timer ring -->
+                            <g id="celestialBody" class="celestial-body">
+                                <circle id="celestialCircle" cx="50" cy="50" r="8" fill="currentColor"/>
+                            </g>
                         </svg>
                     </div>
                 </div>
@@ -61,6 +90,10 @@
                     <button class="btn btn-secondary" id="resetBtn" aria-label="Reset timer">
                         <span class="btn-icon">↺</span>
                         <span class="btn-text">Reset</span>
+                    </button>
+                    <button class="btn btn-secondary" id="skipBtn" aria-label="Skip to next mode">
+                        <span class="btn-icon">⏭</span>
+                        <span class="btn-text">Skip</span>
                     </button>
                 </div>
 
@@ -89,7 +122,25 @@
                         <button class="preset-btn" data-minutes="45">45m</button>
                         <button class="preset-btn" data-minutes="60">60m</button>
                     </div>
+                    <div class="custom-duration">
+                        <input type="number" id="customMinutes" min="1" max="120" placeholder="Custom" 
+                               aria-label="Custom duration in minutes">
+                        <button class="btn-small" id="customDurationBtn">Set</button>
+                    </div>
                 </div>
+            </section>
+
+            <!-- Task Management -->
+            <section class="tasks-section">
+                <h2 class="section-title">📋 Tasks</h2>
+                <div class="task-input-group">
+                    <input type="text" id="newTaskInput" placeholder="Add a new task..." 
+                           maxlength="100" aria-label="New task">
+                    <button class="btn-small" id="addTaskBtn">Add</button>
+                </div>
+                <ul class="task-list" id="taskList">
+                    <!-- Tasks will be dynamically added here -->
+                </ul>
             </section>
 
             <!-- Statistics Section -->
@@ -116,7 +167,7 @@
                 <h2 class="sound-title">🔊 Sound Settings</h2>
                 <div class="sound-controls">
                     <div class="sound-option">
-                        <label class="sound-label" for="volumeSlider">Volume</label>
+                        <label class="sound-label">Volume</label>
                         <input type="range" id="volumeSlider" min="0" max="100" value="50" class="volume-slider">
                     </div>
                     <div class="sound-option">
@@ -128,7 +179,61 @@
                             <button class="sound-btn" data-sound="stream">💧 Stream</button>
                         </div>
                     </div>
+                    <div class="sound-option">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="ambientSoundToggle">
+                            <span>Ambient Sounds</span>
+                        </label>
+                    </div>
                     <button class="test-sound-btn" id="testSoundBtn">🎵 Test Sound</button>
+                </div>
+            </section>
+
+            <!-- Theme Settings -->
+            <section class="theme-section">
+                <h2 class="theme-title">🎨 Theme</h2>
+                <div class="theme-buttons">
+                    <button class="theme-option active" data-theme="forest">
+                        <span class="theme-emoji">🌲</span>
+                        <span class="theme-name">Forest</span>
+                    </button>
+                    <button class="theme-option" data-theme="ocean">
+                        <span class="theme-emoji">🌊</span>
+                        <span class="theme-name">Ocean</span>
+                    </button>
+                    <button class="theme-option" data-theme="mountain">
+                        <span class="theme-emoji">🏔️</span>
+                        <span class="theme-name">Mountain</span>
+                    </button>
+                    <button class="theme-option" data-theme="space">
+                        <span class="theme-emoji">🌌</span>
+                        <span class="theme-name">Space</span>
+                    </button>
+                </div>
+                <div class="theme-option">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="highContrastToggle">
+                        <span>High Contrast</span>
+                    </label>
+                </div>
+            </section>
+
+            <!-- Advanced Options -->
+            <section class="options-section">
+                <h2 class="options-title">⚙️ Options</h2>
+                <div class="options-list">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="autoStartToggle">
+                        <span>Auto-start next timer</span>
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="skipBreaksToggle">
+                        <span>Skip breaks</span>
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="tickSoundToggle">
+                        <span>Tick sound every minute</span>
+                    </label>
                 </div>
             </section>
 
@@ -143,6 +248,74 @@
                 </ul>
             </section>
         </main>
+    </div>
+
+    <!-- Onboarding Modal -->
+    <div class="modal" id="onboardingModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Welcome to Pomodoro Prime! 🌲</h2>
+                <button class="modal-close" id="closeOnboarding">✕</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-text">Your journey to focused productivity starts here. Here's how to get started:</p>
+                <div class="onboarding-steps">
+                    <div class="step">
+                        <span class="step-number">1</span>
+                        <p class="step-text">Choose your focus time and click <strong>Start</strong></p>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">2</span>
+                        <p class="step-text">Work until the timer ends (watch the day/night cycle!)</p>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">3</span>
+                        <p class="step-text">Take a short break, then repeat</p>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">4</span>
+                        <p class="step-text">After 4 pomodoros, enjoy a long break!</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="startJourneyBtn">Start My Journey</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div class="modal" id="shortcutsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">⌨️ Keyboard Shortcuts</h2>
+                <button class="modal-close" id="closeShortcuts">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="shortcuts-list">
+                    <div class="shortcut-item">
+                        <kbd class="key">Space</kbd>
+                        <span class="shortcut-desc">Start / Pause timer</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd class="key">R</kbd>
+                        <span class="shortcut-desc">Reset timer</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd class="key">T</kbd>
+                        <span class="shortcut-desc">Toggle dark/light mode</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd class="key">S</kbd>
+                        <span class="shortcut-desc">Skip to next mode</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd class="key">Esc</kbd>
+                        <span class="shortcut-desc">Close modals</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>

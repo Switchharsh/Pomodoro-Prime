@@ -1,6 +1,8 @@
-// Pomodoro Prime - Enhanced JavaScript
-// Session-only, no persistence - keeps it super lite
+// Pomodoro Prime - Enhanced JavaScript with All Features
+// localStorage persistence, task management, multiple themes, ambient sounds
 // ADHD-friendly: Simple, focused, minimal distractions
+
+// ==================== STATE MANAGEMENT ====================
 
 // Timer State
 let timerState = {
@@ -9,7 +11,8 @@ let timerState = {
     remainingTime: 25 * 60 * 1000, // milliseconds
     totalTime: 25 * 60 * 1000,
     cycle: 1,
-    interval: null
+    interval: null,
+    startTime: null
 };
 
 // Statistics State
@@ -23,11 +26,24 @@ let statsState = {
 // Sound Settings
 let soundSettings = {
     volume: 0.5,
-    soundType: 'chime' // 'chime', 'birds', 'rain', 'stream'
+    soundType: 'chime', // 'chime', 'birds', 'rain', 'stream'
+    ambientEnabled: false,
+    tickEnabled: false
 };
 
-// Theme State
+// Theme Settings
+let currentTheme = 'forest'; // 'forest', 'ocean', 'mountain', 'space'
 let isDarkMode = false;
+let highContrast = false;
+
+// Options
+let options = {
+    autoStart: false,
+    skipBreaks: false
+};
+
+// Tasks
+let tasks = [];
 
 // Timer Durations (in milliseconds)
 const DURATIONS = {
@@ -36,62 +52,158 @@ const DURATIONS = {
     long: 15 * 60 * 1000
 };
 
-// DOM Elements - will be initialized when DOM is ready
-let timerDisplay, timerType, progressBar, currentCycle, startBtn, resetBtn, taskInput, modeBtns;
+// ==================== DOM ELEMENTS ====================
+
+let timerDisplay, timerType, progressBar, currentCycle, startBtn, resetBtn, skipBtn, taskInput, modeBtns;
 let themeToggleBtn, presetBtns, soundBtns, volumeSlider, testSoundBtn;
 let statPomodoros, statFocusTime, statStreak;
-
-// Audio Context for notification sound
+let progressPercent, timeElapsed, timeRemaining;
+let customMinutes, customDurationBtn;
+let newTaskInput, addTaskBtn, taskList;
+let settingsBtn, shortcutsBtn;
+let onboardingModal, closeOnboarding, startJourneyBtn;
+let shortcutsModal, closeShortcuts;
+let ambientSoundToggle, autoStartToggle, skipBreaksToggle, tickSoundToggle;
+let highContrastToggle, themeOptions;
 let audioContext;
+let particlesCanvas, particlesCtx, particles = [];
+let skyCanvas, skyCtx, stars = [];
+let ambientOscillator, ambientGainNode;
 
-// Particles Canvas
-let particlesCanvas, particlesCtx;
-let particles = [];
+// ==================== THEME COLORS ====================
 
-// Sky Canvas for Day/Night Cycle
-let skyCanvas, skyCtx;
-let stars = [];
-
-// Sky Colors for different times of day
-const SKY_COLORS = {
-    sunrise: {
-        top: [135, 206, 235],    // Light blue
-        middle: [255, 183, 77],  // Orange
-        bottom: [255, 127, 80]   // Coral
+const THEME_COLORS = {
+    forest: {
+        sunrise: { top: [135, 206, 235], middle: [255, 183, 77], bottom: [255, 127, 80] },
+        morning: { top: [135, 206, 235], middle: [176, 224, 230], bottom: [255, 255, 255] },
+        midday: { top: [70, 130, 180], middle: [135, 206, 235], bottom: [173, 216, 230] },
+        afternoon: { top: [100, 149, 237], middle: [255, 218, 185], bottom: [255, 160, 122] },
+        sunset: { top: [72, 61, 139], middle: [255, 140, 0], bottom: [255, 69, 0] },
+        night: { top: [10, 10, 30], middle: [20, 20, 50], bottom: [30, 30, 70] },
+        focus: '#2D5A27',
+        focusLight: '#4A7C43',
+        short: '#5D8A66',
+        shortLight: '#8AB896',
+        long: '#8B7355',
+        longLight: '#B8A99A'
     },
-    morning: {
-        top: [135, 206, 235],    // Sky blue
-        middle: [176, 224, 230], // Powder blue
-        bottom: [255, 255, 255]  // White
+    ocean: {
+        sunrise: { top: [135, 206, 250], middle: [255, 200, 150], bottom: [255, 150, 100] },
+        morning: { top: [135, 206, 250], middle: [173, 216, 230], bottom: [240, 248, 255] },
+        midday: { top: [30, 144, 255], middle: [135, 206, 250], bottom: [173, 216, 230] },
+        afternoon: { top: [65, 105, 225], middle: [255, 200, 150], bottom: [255, 150, 100] },
+        sunset: { top: [25, 25, 112], middle: [255, 140, 0], bottom: [255, 100, 50] },
+        night: { top: [10, 10, 40], middle: [20, 30, 60], bottom: [30, 50, 80] },
+        focus: '#1E90FF',
+        focusLight: '#4169E1',
+        short: '#20B2AA',
+        shortLight: '#5DADE2',
+        long: '#008B8B',
+        longLight: '#48D1CC'
     },
-    midday: {
-        top: [70, 130, 180],     // Steel blue
-        middle: [135, 206, 235], // Sky blue
-        bottom: [173, 216, 230]  // Light blue
+    mountain: {
+        sunrise: { top: [176, 196, 222], middle: [255, 218, 185], bottom: [210, 180, 140] },
+        morning: { top: [176, 196, 222], middle: [230, 230, 250], bottom: [255, 250, 250] },
+        midday: { top: [135, 206, 235], middle: [176, 196, 222], bottom: [200, 200, 220] },
+        afternoon: { top: [119, 136, 153], middle: [255, 218, 185], bottom: [210, 180, 140] },
+        sunset: { top: [47, 79, 79], middle: [255, 140, 0], bottom: [210, 105, 30] },
+        night: { top: [15, 15, 25], middle: [25, 25, 40], bottom: [40, 40, 60] },
+        focus: '#6B8E23',
+        focusLight: '#8B9A46',
+        short: '#8B4513',
+        shortLight: '#CD853F',
+        long: '#556B2F',
+        longLight: '#8B7355'
     },
-    afternoon: {
-        top: [100, 149, 237],    // Cornflower blue
-        middle: [255, 218, 185], // Peach
-        bottom: [255, 160, 122] // Light salmon
-    },
-    sunset: {
-        top: [72, 61, 139],      // Dark slate blue
-        middle: [255, 140, 0],   // Dark orange
-        bottom: [255, 69, 0]     // Red orange
-    },
-    evening: {
-        top: [25, 25, 112],      // Midnight blue
-        middle: [75, 0, 130],    // Indigo
-        bottom: [138, 43, 226]   // Blue violet
-    },
-    night: {
-        top: [10, 10, 30],       // Very dark blue
-        middle: [20, 20, 50],    // Dark blue
-        bottom: [30, 30, 70]     // Medium dark blue
+    space: {
+        sunrise: { top: [75, 0, 130], middle: [255, 100, 100], bottom: [255, 150, 150] },
+        morning: { top: [75, 0, 130], middle: [147, 112, 219], bottom: [186, 85, 211] },
+        midday: { top: [25, 25, 112], middle: [75, 0, 130], bottom: [147, 112, 219] },
+        afternoon: { top: [72, 61, 139], middle: [255, 100, 100], bottom: [255, 150, 150] },
+        sunset: { top: [0, 0, 0], middle: [255, 100, 100], bottom: [255, 50, 50] },
+        night: { top: [5, 5, 15], middle: [10, 10, 25], bottom: [20, 20, 35] },
+        focus: '#9400D3',
+        focusLight: '#BA55D3',
+        short: '#FF6347',
+        shortLight: '#FFA07A',
+        long: '#32CD32',
+        longLight: '#90EE90'
     }
 };
 
-// Initialize DOM Elements
+// ==================== LOCAL STORAGE ====================
+
+function saveToStorage() {
+    const data = {
+        timerState: {
+            mode: timerState.mode,
+            totalTime: timerState.totalTime,
+            remainingTime: timerState.remainingTime,
+            cycle: timerState.cycle
+        },
+        statsState,
+        soundSettings,
+        themeSettings: {
+            currentTheme,
+            isDarkMode,
+            highContrast
+        },
+        options,
+        tasks
+    };
+    localStorage.setItem('pomodoroPrimeData', JSON.stringify(data));
+}
+
+function loadFromStorage() {
+    const saved = localStorage.getItem('pomodoroPrimeData');
+    if (saved) {
+        const data = JSON.parse(saved);
+        
+        // Restore timer state
+        if (data.timerState) {
+            timerState.mode = data.timerState.mode || 'focus';
+            timerState.totalTime = data.timerState.totalTime || DURATIONS.focus;
+            timerState.remainingTime = data.timerState.remainingTime || DURATIONS.focus;
+            timerState.cycle = data.timerState.cycle || 1;
+        }
+        
+        // Restore statistics
+        if (data.statsState) {
+            statsState = { ...statsState, ...data.statsState };
+        }
+        
+        // Restore sound settings
+        if (data.soundSettings) {
+            soundSettings = { ...soundSettings, ...data.soundSettings };
+        }
+        
+        // Restore theme settings
+        if (data.themeSettings) {
+            currentTheme = data.themeSettings.currentTheme || 'forest';
+            isDarkMode = data.themeSettings.isDarkMode || false;
+            highContrast = data.themeSettings.highContrast || false;
+        }
+        
+        // Restore options
+        if (data.options) {
+            options = { ...options, ...data.options };
+        }
+        
+        // Restore tasks
+        if (data.tasks) {
+            tasks = data.tasks;
+        }
+    }
+    
+    // Check if first-time user
+    const hasVisited = localStorage.getItem('pomodoroPrimeVisited');
+    if (!hasVisited) {
+        showOnboarding();
+    }
+}
+
+// ==================== INITIALIZATION ====================
+
 function initDOM() {
     timerDisplay = document.getElementById('timerDisplay');
     timerType = document.getElementById('timerType');
@@ -99,6 +211,7 @@ function initDOM() {
     currentCycle = document.getElementById('currentCycle');
     startBtn = document.getElementById('startBtn');
     resetBtn = document.getElementById('resetBtn');
+    skipBtn = document.getElementById('skipBtn');
     taskInput = document.getElementById('taskInput');
     modeBtns = document.querySelectorAll('.mode-btn');
     themeToggleBtn = document.getElementById('themeToggle');
@@ -109,13 +222,37 @@ function initDOM() {
     statPomodoros = document.getElementById('statPomodoros');
     statFocusTime = document.getElementById('statFocusTime');
     statStreak = document.getElementById('statStreak');
+    progressPercent = document.getElementById('progressPercent');
+    timeElapsed = document.getElementById('timeElapsed');
+    timeRemaining = document.getElementById('timeRemaining');
+    customMinutes = document.getElementById('customMinutes');
+    customDurationBtn = document.getElementById('customDurationBtn');
+    newTaskInput = document.getElementById('newTaskInput');
+    addTaskBtn = document.getElementById('addTaskBtn');
+    taskList = document.getElementById('taskList');
+    settingsBtn = document.getElementById('settingsBtn');
+    shortcutsBtn = document.getElementById('shortcutsBtn');
+    onboardingModal = document.getElementById('onboardingModal');
+    closeOnboarding = document.getElementById('closeOnboarding');
+    startJourneyBtn = document.getElementById('startJourneyBtn');
+    shortcutsModal = document.getElementById('shortcutsModal');
+    closeShortcuts = document.getElementById('closeShortcuts');
+    ambientSoundToggle = document.getElementById('ambientSoundToggle');
+    autoStartToggle = document.getElementById('autoStartToggle');
+    skipBreaksToggle = document.getElementById('skipBreaksToggle');
+    tickSoundToggle = document.getElementById('tickSoundToggle');
+    highContrastToggle = document.getElementById('highContrastToggle');
+    themeOptions = document.querySelectorAll('.theme-option');
     particlesCanvas = document.getElementById('particlesCanvas');
     particlesCtx = particlesCanvas.getContext('2d');
     skyCanvas = document.getElementById('skyCanvas');
     skyCtx = skyCanvas.getContext('2d');
+    celestialBody = document.getElementById('celestialBody');
+    celestialCircle = document.getElementById('celestialCircle');
 }
 
-// Format time as MM:SS
+// ==================== UTILITY FUNCTIONS ====================
+
 function formatTime(ms) {
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -123,26 +260,62 @@ function formatTime(ms) {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-// Update timer display
 function updateDisplay() {
     timerDisplay.textContent = formatTime(timerState.remainingTime);
     document.title = `${formatTime(timerState.remainingTime)} - Pomodoro Prime`;
+    
+    // Update timer info
+    const elapsed = timerState.totalTime - timerState.remainingTime;
+    const progress = Math.round((elapsed / timerState.totalTime) * 100);
+    
+    progressPercent.textContent = `${progress}%`;
+    timeElapsed.textContent = formatTime(elapsed);
+    timeRemaining.textContent = formatTime(timerState.remainingTime);
+    
+    // Countdown animation on last 10 seconds
+    if (timerState.remainingTime <= 10000 && timerState.remainingTime > 0) {
+        timerDisplay.classList.add('countdown');
+    } else {
+        timerDisplay.classList.remove('countdown');
+    }
 }
 
-// Update progress ring
 function updateProgress() {
     const circumference = 2 * Math.PI * 45;
     const progress = (timerState.totalTime - timerState.remainingTime) / timerState.totalTime;
     const dashOffset = circumference - (progress * circumference);
     progressBar.style.strokeDashoffset = dashOffset;
+    
+    // Animate celestial body inside timer ring
+    updateCelestialBody(progress);
 }
 
-// Update cycle indicator
+function updateCelestialBody(progress) {
+    if (!celestialBody || !celestialCircle) return;
+    
+    // Calculate position in a semi-circle arc (from bottom to top)
+    const angle = Math.PI - (progress * Math.PI);
+    const radius = 35;
+    const centerX = 50;
+    const centerY = 50;
+    
+    // Calculate position based on angle
+    const x = centerX + Math.cos(angle) * radius;
+    const y = centerY + Math.sin(angle) * radius;
+    
+    // Move celestial body
+    celestialCircle.setAttribute('cx', x.toString());
+    celestialCircle.setAttribute('cy', y.toString());
+    
+    // Update size based on progress (sun gets bigger at midday, moon gets bigger at night)
+    const size = 6 + Math.sin(progress * Math.PI) * 4;
+    celestialCircle.setAttribute('r', size.toString());
+}
+
 function updateCycle() {
     currentCycle.textContent = `${timerState.cycle}/4`;
 }
 
-// Update timer type display
 function updateTimerType() {
     const typeLabels = {
         focus: 'Focus',
@@ -150,15 +323,15 @@ function updateTimerType() {
         long: 'Long Break'
     };
     timerType.textContent = typeLabels[timerState.mode];
-    
-    // Update progress bar color
     progressBar.setAttribute('data-mode', timerState.mode);
-    
-    // Update timer type color
     timerType.setAttribute('data-mode', timerState.mode);
+    
+    // Update celestial body color
+    if (celestialBody) {
+        celestialBody.setAttribute('data-mode', timerState.mode);
+    }
 }
 
-// Update button states
 function updateButtons() {
     if (timerState.isRunning) {
         startBtn.innerHTML = '<span class="btn-icon">⏸</span><span class="btn-text">Pause</span>';
@@ -169,22 +342,30 @@ function updateButtons() {
     }
 }
 
-// Update statistics display
 function updateStats() {
     statPomodoros.textContent = statsState.pomodoros;
     statFocusTime.textContent = `${statsState.focusTime}m`;
     statStreak.textContent = statsState.streak;
 }
 
-// Play notification sound using Web Audio API
+function updateThemeColors() {
+    const colors = THEME_COLORS[currentTheme];
+    document.documentElement.style.setProperty('--color-focus', colors.focus);
+    document.documentElement.style.setProperty('--color-focus-light', colors.focusLight);
+    document.documentElement.style.setProperty('--color-short-break', colors.short);
+    document.documentElement.style.setProperty('--color-short-break-light', colors.shortLight);
+    document.documentElement.style.setProperty('--color-long-break', colors.long);
+    document.documentElement.style.setProperty('--color-long-break-light', colors.longLight);
+}
+
+// ==================== AUDIO FUNCTIONS ====================
+
 function playAlarm() {
     try {
-        // Initialize AudioContext on first user interaction
         if (!audioContext) {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
         
-        // Resume context if suspended (required by browsers)
         if (audioContext.state === 'suspended') {
             audioContext.resume();
         }
@@ -192,26 +373,16 @@ function playAlarm() {
         const volume = soundSettings.volume;
         
         switch (soundSettings.soundType) {
-            case 'chime':
-                playChime(volume);
-                break;
-            case 'birds':
-                playBirds(volume);
-                break;
-            case 'rain':
-                playRain(volume);
-                break;
-            case 'stream':
-                playStream(volume);
-                break;
+            case 'chime': playChime(volume); break;
+            case 'birds': playBirds(volume); break;
+            case 'rain': playRain(volume); break;
+            case 'stream': playStream(volume); break;
         }
-        
     } catch (e) {
         console.log('Audio play error:', e);
     }
 }
 
-// Play chime sound
 function playChime(volume) {
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
@@ -220,8 +391,8 @@ function playChime(volume) {
     gainNode.connect(audioContext.destination);
     
     oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
-    oscillator.frequency.exponentialRampToValueAtTime(783.99, audioContext.currentTime + 0.1); // G5
+    oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(783.99, audioContext.currentTime + 0.1);
     
     gainNode.gain.setValueAtTime(0, audioContext.currentTime);
     gainNode.gain.linearRampToValueAtTime(0.3 * volume, audioContext.currentTime + 0.05);
@@ -231,7 +402,6 @@ function playChime(volume) {
     oscillator.stop(audioContext.currentTime + 0.5);
 }
 
-// Play birds sound
 function playBirds(volume) {
     for (let i = 0; i < 3; i++) {
         setTimeout(() => {
@@ -255,7 +425,6 @@ function playBirds(volume) {
     }
 }
 
-// Play rain sound
 function playRain(volume) {
     const bufferSize = audioContext.sampleRate * 0.5;
     const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
@@ -286,7 +455,6 @@ function playRain(volume) {
     noise.stop(audioContext.currentTime + 0.5);
 }
 
-// Play stream sound
 function playStream(volume) {
     const bufferSize = audioContext.sampleRate * 0.5;
     const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
@@ -317,7 +485,60 @@ function playStream(volume) {
     noise.stop(audioContext.currentTime + 0.5);
 }
 
-// Request notification permission
+function playTick() {
+    if (!audioContext) return;
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    
+    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.05 * soundSettings.volume, audioContext.currentTime + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.1);
+}
+
+function toggleAmbientSound() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    
+    if (soundSettings.ambientEnabled) {
+        // Start ambient sound
+        ambientOscillator = audioContext.createOscillator();
+        ambientGainNode = audioContext.createGain();
+        
+        ambientOscillator.connect(ambientGainNode);
+        ambientGainNode.connect(audioContext.destination);
+        
+        ambientOscillator.type = 'sine';
+        ambientOscillator.frequency.setValueAtTime(100, audioContext.currentTime);
+        
+        ambientGainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        ambientGainNode.gain.linearRampToValueAtTime(0.1 * soundSettings.volume, audioContext.currentTime + 1);
+        
+        ambientOscillator.start(audioContext.currentTime);
+    } else {
+        // Stop ambient sound
+        if (ambientOscillator && ambientGainNode) {
+            ambientGainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.5);
+            setTimeout(() => {
+                ambientOscillator.stop();
+                ambientOscillator = null;
+            }, 500);
+        }
+    }
+}
+
+// ==================== NOTIFICATIONS ====================
+
 function requestNotificationPermission() {
     if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission().then(permission => {
@@ -328,7 +549,6 @@ function requestNotificationPermission() {
     }
 }
 
-// Show browser notification
 function showBrowserNotification(title, body, icon) {
     if ('Notification' in window && Notification.permission === 'granted') {
         const notification = new Notification(title, {
@@ -339,48 +559,33 @@ function showBrowserNotification(title, body, icon) {
             requireInteraction: false
         });
         
-        // Auto-close after 5 seconds
         setTimeout(() => {
             notification.close();
         }, 5000);
     }
 }
 
-// Handle timer completion
+// ==================== TIMER FUNCTIONS ====================
+
 function onTimerComplete() {
     playAlarm();
     
-    // Vibrate if supported
     if ('vibrate' in navigator) {
         navigator.vibrate([200, 100, 200]);
     }
     
-    // Show browser notification
-    let notificationTitle, notificationBody;
-    if (timerState.mode === 'focus') {
-        notificationTitle = '🌲 Focus Complete!';
-        notificationBody = 'Great work! Time for a break.';
-    } else if (timerState.mode === 'short') {
-        notificationTitle = '🌿 Break Over!';
-        notificationBody = 'Ready to focus again?';
-    } else {
-        notificationTitle = '🍃 Long Break Over!';
-        notificationBody = 'Feeling refreshed? Let\'s focus!';
-    }
-    showBrowserNotification(notificationTitle, notificationBody, '🌲');
-    
-    // Show visual feedback
     timerDisplay.classList.add('timer-complete');
     setTimeout(() => {
         timerDisplay.classList.remove('timer-complete');
     }, 3000);
     
-    // Update statistics
+    let notificationTitle, notificationBody;
     if (timerState.mode === 'focus') {
+        notificationTitle = '🌲 Focus Complete!';
+        notificationBody = 'Great work! Time for a break.';
         statsState.pomodoros++;
         statsState.focusTime += Math.round(timerState.totalTime / 60000);
         
-        // Update streak
         const today = new Date().toDateString();
         if (statsState.lastSessionDate !== today) {
             const yesterday = new Date();
@@ -396,9 +601,17 @@ function onTimerComplete() {
         }
         
         updateStats();
+    } else if (timerState.mode === 'short') {
+        notificationTitle = '🌿 Break Over!';
+        notificationBody = 'Ready to focus again?';
+    } else {
+        notificationTitle = '🍃 Long Break Over!';
+        notificationBody = 'Feeling refreshed? Let\'s focus!';
     }
     
-    // Determine next mode
+    showBrowserNotification(notificationTitle, notificationBody, '🌲');
+    saveToStorage();
+    
     let nextMode;
     if (timerState.mode === 'focus') {
         timerState.cycle++;
@@ -412,19 +625,21 @@ function onTimerComplete() {
         nextMode = 'focus';
     }
     
-    // Auto-switch mode after delay
     setTimeout(() => {
-        setMode(nextMode);
+        if (options.autoStart) {
+            setMode(nextMode);
+            startTimer();
+        } else {
+            setMode(nextMode);
+        }
     }, 2000);
 }
 
-// Set timer mode
 function setMode(mode) {
     timerState.mode = mode;
     timerState.totalTime = DURATIONS[mode];
     timerState.remainingTime = timerState.totalTime;
     
-    // Reset timer
     clearInterval(timerState.interval);
     timerState.isRunning = false;
     
@@ -434,33 +649,39 @@ function setMode(mode) {
     updateCycle();
     updateModeButtons();
     updateButtons();
+    saveToStorage();
 }
 
-// Update mode buttons
 function updateModeButtons() {
     modeBtns.forEach(btn => {
-        if (btn.dataset.mode === timerState.mode) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
-        }
+        btn.classList.toggle('active', btn.dataset.mode === timerState.mode);
     });
 }
 
-// Start timer
 function startTimer() {
-    if (timerState.isRunning) { return; }
+    if (timerState.isRunning) return;
     
     timerState.isRunning = true;
+    timerState.startTime = Date.now() - (timerState.totalTime - timerState.remainingTime);
     updateButtons();
     
-    const startTime = Date.now();
+    let lastMinute = Math.floor(timerState.remainingTime / 60000);
+    
     timerState.interval = setInterval(() => {
-        const elapsed = Date.now() - startTime;
+        const elapsed = Date.now() - timerState.startTime;
         timerState.remainingTime = Math.max(0, timerState.totalTime - elapsed);
         
         updateDisplay();
         updateProgress();
+        
+        // Tick sound every minute
+        if (soundSettings.tickEnabled) {
+            const currentMinute = Math.floor(timerState.remainingTime / 60000);
+            if (currentMinute !== lastMinute && currentMinute >= 0) {
+                playTick();
+                lastMinute = currentMinute;
+            }
+        }
         
         if (timerState.remainingTime <= 0) {
             clearInterval(timerState.interval);
@@ -469,16 +690,15 @@ function startTimer() {
     }, 1000);
 }
 
-// Pause timer
 function pauseTimer() {
-    if (!timerState.isRunning) { return; }
+    if (!timerState.isRunning) return;
     
     timerState.isRunning = false;
     clearInterval(timerState.interval);
     updateButtons();
+    saveToStorage();
 }
 
-// Reset timer
 function resetTimer() {
     clearInterval(timerState.interval);
     timerState.isRunning = false;
@@ -487,27 +707,38 @@ function resetTimer() {
     updateDisplay();
     updateProgress();
     updateButtons();
-    
     timerDisplay.classList.remove('timer-complete');
+    saveToStorage();
 }
 
-// Skip to next mode
 function skipTimer() {
     pauseTimer();
-    const modes = ['focus', 'short', 'long'];
-    const currentIndex = modes.indexOf(timerState.mode);
-    const nextIndex = (currentIndex + 1) % modes.length;
-    setMode(modes[nextIndex]);
+    
+    if (options.skipBreaks && timerState.mode !== 'focus') {
+        // Skip break, go to focus
+        setMode('focus');
+        if (options.autoStart) {
+            startTimer();
+        }
+    } else {
+        // Normal skip logic - go through cycle
+        const modes = ['focus', 'short', 'long'];
+        const currentIndex = modes.indexOf(timerState.mode);
+        const nextIndex = (currentIndex + 1) % modes.length;
+        setMode(modes[nextIndex]);
+        
+        // Special case: if we're on short break and skip breaks is on,
+        // we should skip to long break after 4th pomodoro
+        if (timerState.mode === 'short' && options.skipBreaks && timerState.cycle === 4) {
+            setMode('long');
+        }
+        
+        if (options.autoStart) {
+            startTimer();
+        }
+    }
 }
 
-// Toggle theme
-function toggleTheme() {
-    isDarkMode = !isDarkMode;
-    document.body.classList.toggle('dark-mode', isDarkMode);
-    themeToggleBtn.querySelector('.theme-icon').textContent = isDarkMode ? '☀️' : '🌙';
-}
-
-// Set custom timer duration
 function setCustomDuration(minutes) {
     timerState.totalTime = minutes * 60 * 1000;
     timerState.remainingTime = timerState.totalTime;
@@ -520,108 +751,132 @@ function setCustomDuration(minutes) {
     updateDisplay();
     updateProgress();
     updateButtons();
+    saveToStorage();
     
-    // Update active preset button
     presetBtns.forEach(btn => {
         btn.classList.toggle('active', parseInt(btn.dataset.minutes) === minutes);
     });
 }
 
-// Initialize particles
-function initParticles() {
-    resizeCanvas();
-    createParticles();
-    animateParticles();
-}
+// ==================== TASK FUNCTIONS ====================
 
-// Resize canvas
-function resizeCanvas() {
-    particlesCanvas.width = window.innerWidth;
-    particlesCanvas.height = window.innerHeight;
-}
-
-// Create particles
-function createParticles() {
-    particles = [];
-    const particleCount = 30;
-    
-    for (let i = 0; i < particleCount; i++) {
-        particles.push({
-            x: Math.random() * particlesCanvas.width,
-            y: Math.random() * particlesCanvas.height,
-            size: Math.random() * 4 + 2,
-            speedX: (Math.random() - 0.5) * 0.5,
-            speedY: (Math.random() - 0.5) * 0.5,
-            opacity: Math.random() * 0.5 + 0.2,
-            type: Math.random() > 0.5 ? 'firefly' : 'leaf'
-        });
-    }
-}
-
-// Animate particles
-function animateParticles() {
-    particlesCtx.clearRect(0, 0, particlesCanvas.width, particlesCanvas.height);
-    
-    particles.forEach(particle => {
-        // Update position
-        particle.x += particle.speedX;
-        particle.y += particle.speedY;
+function renderTasks() {
+    taskList.innerHTML = '';
+    tasks.forEach((task, index) => {
+        const li = document.createElement('li');
+        li.className = 'task-item';
+        li.dataset.index = index;
         
-        // Wrap around screen
-        if (particle.x < -10) particle.x = particlesCanvas.width + 10;
-        if (particle.x > particlesCanvas.width + 10) particle.x = -10;
-        if (particle.y < -10) particle.y = particlesCanvas.height + 10;
-        if (particle.y > particlesCanvas.height + 10) particle.y = -10;
+        li.innerHTML = `
+            <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
+            <span class="task-text ${task.completed ? 'completed' : ''}">${task.text}</span>
+            <button class="task-delete" aria-label="Delete task">✕</button>
+        `;
         
-        // Draw particle
-        particlesCtx.beginPath();
-        particlesCtx.globalAlpha = particle.opacity;
-        
-        if (particle.type === 'firefly') {
-            // Draw firefly (glowing dot)
-            const gradient = particlesCtx.createRadialGradient(
-                particle.x, particle.y, 0,
-                particle.x, particle.y, particle.size * 2
-            );
-            gradient.addColorStop(0, 'rgba(255, 255, 150, 0.8)');
-            gradient.addColorStop(1, 'rgba(255, 255, 150, 0)');
-            particlesCtx.fillStyle = gradient;
-            particlesCtx.arc(particle.x, particle.y, particle.size * 2, 0, Math.PI * 2);
-        } else {
-            // Draw leaf (small oval)
-            particlesCtx.fillStyle = isDarkMode ? 'rgba(100, 150, 100, 0.6)' : 'rgba(80, 120, 80, 0.6)';
-            particlesCtx.ellipse(particle.x, particle.y, particle.size, particle.size * 0.6, 0, 0, Math.PI * 2);
-        }
-        
-        particlesCtx.fill();
-        
-        // Twinkle effect for fireflies
-        if (particle.type === 'firefly') {
-            particle.opacity += (Math.random() - 0.5) * 0.1;
-            particle.opacity = Math.max(0.2, Math.min(0.7, particle.opacity));
-        }
+        taskList.appendChild(li);
     });
     
-    particlesCtx.globalAlpha = 1;
-    requestAnimationFrame(animateParticles);
+    // Add event listeners
+    document.querySelectorAll('.task-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+            const index = parseInt(e.target.closest('.task-item').dataset.index);
+            toggleTaskComplete(index);
+        });
+    });
+    
+    document.querySelectorAll('.task-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const index = parseInt(e.target.closest('.task-item').dataset.index);
+            deleteTask(index);
+        });
+    });
 }
 
-// ==================== Sky Animation Functions ====================
+function addTask() {
+    const text = newTaskInput.value.trim();
+    if (!text) return;
+    
+    tasks.push({
+        text,
+        completed: false,
+        createdAt: Date.now()
+    });
+    
+    newTaskInput.value = '';
+    renderTasks();
+    saveToStorage();
+}
 
-// Initialize sky
+function toggleTaskComplete(index) {
+    tasks[index].completed = !tasks[index].completed;
+    renderTasks();
+    saveToStorage();
+}
+
+function deleteTask(index) {
+    tasks.splice(index, 1);
+    renderTasks();
+    saveToStorage();
+}
+
+// ==================== THEME FUNCTIONS ====================
+
+function toggleTheme() {
+    isDarkMode = !isDarkMode;
+    document.body.classList.toggle('dark-mode', isDarkMode);
+    themeToggleBtn.querySelector('.theme-icon').textContent = isDarkMode ? '☀️' : '🌙';
+    saveToStorage();
+}
+
+function setTheme(theme) {
+    currentTheme = theme;
+    updateThemeColors();
+    
+    themeOptions.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.theme === theme);
+    });
+    
+    saveToStorage();
+}
+
+function toggleHighContrast() {
+    highContrast = !highContrast;
+    document.body.classList.toggle('high-contrast', highContrast);
+    saveToStorage();
+}
+
+// ==================== MODAL FUNCTIONS ====================
+
+function showOnboarding() {
+    onboardingModal.classList.add('visible');
+}
+
+function hideOnboarding() {
+    onboardingModal.classList.remove('visible');
+    localStorage.setItem('pomodoroPrimeVisited', 'true');
+}
+
+function showShortcuts() {
+    shortcutsModal.classList.add('visible');
+}
+
+function hideShortcuts() {
+    shortcutsModal.classList.remove('visible');
+}
+
+// ==================== SKY ANIMATION ====================
+
 function initSky() {
     resizeSkyCanvas();
     createStars();
     animateSky();
 }
 
-// Resize sky canvas
 function resizeSkyCanvas() {
     skyCanvas.width = window.innerWidth;
     skyCanvas.height = window.innerHeight;
 }
 
-// Create stars
 function createStars() {
     stars = [];
     const starCount = 100;
@@ -629,7 +884,7 @@ function createStars() {
     for (let i = 0; i < starCount; i++) {
         stars.push({
             x: Math.random() * skyCanvas.width,
-            y: Math.random() * skyCanvas.height * 0.6, // Stars only in upper 60%
+            y: Math.random() * skyCanvas.height * 0.6,
             size: Math.random() * 2 + 0.5,
             twinkleSpeed: Math.random() * 0.05 + 0.02,
             opacity: Math.random() * 0.8 + 0.2,
@@ -638,29 +893,6 @@ function createStars() {
     }
 }
 
-// Get sky colors based on timer progress (0-1)
-function getSkyColors(progress) {
-    // Map progress to time of day:
-    // 0.0 - 0.15: Sunrise
-    // 0.15 - 0.35: Morning
-    // 0.35 - 0.65: Midday
-    // 0.65 - 0.85: Afternoon/Sunset
-    // 0.85 - 1.0: Night
-    
-    if (progress < 0.15) {
-        return SKY_COLORS.sunrise;
-    } else if (progress < 0.35) {
-        return SKY_COLORS.morning;
-    } else if (progress < 0.65) {
-        return SKY_COLORS.midday;
-    } else if (progress < 0.85) {
-        return SKY_COLORS.sunset;
-    } else {
-        return SKY_COLORS.night;
-    }
-}
-
-// Interpolate between two colors
 function lerpColor(color1, color2, t) {
     return [
         Math.round(color1[0] + (color2[0] - color1[0]) * t),
@@ -669,14 +901,14 @@ function lerpColor(color1, color2, t) {
     ];
 }
 
-// Get interpolated sky colors for smooth transitions
 function getInterpolatedSkyColors(progress) {
     const phases = [
-        { start: 0.0, end: 0.15, color: SKY_COLORS.sunrise },
-        { start: 0.15, end: 0.35, color: SKY_COLORS.morning },
-        { start: 0.35, end: 0.65, color: SKY_COLORS.midday },
-        { start: 0.65, end: 0.85, color: SKY_COLORS.sunset },
-        { start: 0.85, end: 1.0, color: SKY_COLORS.night }
+        { start: 0.0, end: 0.15, color: THEME_COLORS[currentTheme].sunrise },
+        { start: 0.15, end: 0.35, color: THEME_COLORS[currentTheme].morning },
+        { start: 0.35, end: 0.65, color: THEME_COLORS[currentTheme].midday },
+        { start: 0.65, end: 0.85, color: THEME_COLORS[currentTheme].afternoon },
+        { start: 0.85, end: 1.0, color: THEME_COLORS[currentTheme].sunset },
+        { start: 1.0, end: 1.0, color: THEME_COLORS[currentTheme].night }
     ];
     
     let currentPhase, nextPhase;
@@ -703,7 +935,6 @@ function getInterpolatedSkyColors(progress) {
     };
 }
 
-// Draw sky gradient
 function drawSky(colors) {
     const gradient = skyCtx.createLinearGradient(0, 0, 0, skyCanvas.height);
     gradient.addColorStop(0, `rgb(${colors.top.join(',')})`);
@@ -714,9 +945,7 @@ function drawSky(colors) {
     skyCtx.fillRect(0, 0, skyCanvas.width, skyCanvas.height);
 }
 
-// Draw sun
 function drawSun(progress) {
-    // Sun is visible from 0.0 to 0.85
     if (progress > 0.85) return;
     
     const sunProgress = progress / 0.85;
@@ -724,7 +953,6 @@ function drawSun(progress) {
     const sunY = skyCanvas.height * 0.8 - Math.sin(sunProgress * Math.PI) * skyCanvas.height * 0.6;
     const sunSize = 40 + Math.sin(sunProgress * Math.PI) * 10;
     
-    // Sun glow
     const glowGradient = skyCtx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunSize * 3);
     glowGradient.addColorStop(0, 'rgba(255, 255, 200, 0.4)');
     glowGradient.addColorStop(0.5, 'rgba(255, 200, 100, 0.2)');
@@ -735,7 +963,6 @@ function drawSun(progress) {
     skyCtx.arc(sunX, sunY, sunSize * 3, 0, Math.PI * 2);
     skyCtx.fill();
     
-    // Sun body
     const sunGradient = skyCtx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunSize);
     sunGradient.addColorStop(0, 'rgba(255, 255, 220, 1)');
     sunGradient.addColorStop(0.8, 'rgba(255, 200, 100, 1)');
@@ -747,9 +974,7 @@ function drawSun(progress) {
     skyCtx.fill();
 }
 
-// Draw moon
 function drawMoon(progress) {
-    // Moon is visible from 0.7 to 1.0
     if (progress < 0.7) return;
     
     const moonProgress = (progress - 0.7) / 0.3;
@@ -757,7 +982,6 @@ function drawMoon(progress) {
     const moonY = skyCanvas.height * 0.8 - Math.sin(moonProgress * Math.PI) * skyCanvas.height * 0.6;
     const moonSize = 35;
     
-    // Moon glow
     const glowGradient = skyCtx.createRadialGradient(moonX, moonY, 0, moonX, moonY, moonSize * 2.5);
     glowGradient.addColorStop(0, 'rgba(200, 220, 255, 0.3)');
     glowGradient.addColorStop(0.5, 'rgba(150, 180, 255, 0.15)');
@@ -768,7 +992,6 @@ function drawMoon(progress) {
     skyCtx.arc(moonX, moonY, moonSize * 2.5, 0, Math.PI * 2);
     skyCtx.fill();
     
-    // Moon body
     const moonGradient = skyCtx.createRadialGradient(moonX, moonY, 0, moonX, moonY, moonSize);
     moonGradient.addColorStop(0, 'rgba(240, 240, 255, 1)');
     moonGradient.addColorStop(0.7, 'rgba(200, 200, 230, 1)');
@@ -779,7 +1002,6 @@ function drawMoon(progress) {
     skyCtx.arc(moonX, moonY, moonSize, 0, Math.PI * 2);
     skyCtx.fill();
     
-    // Moon craters
     skyCtx.fillStyle = 'rgba(180, 180, 210, 0.3)';
     skyCtx.beginPath();
     skyCtx.arc(moonX - 8, moonY - 5, 5, 0, Math.PI * 2);
@@ -792,15 +1014,12 @@ function drawMoon(progress) {
     skyCtx.fill();
 }
 
-// Draw stars
 function drawStars(progress) {
-    // Stars are visible from 0.8 to 1.0
     if (progress < 0.8) return;
     
     const starVisibility = (progress - 0.8) / 0.2;
     
     stars.forEach(star => {
-        // Twinkle effect
         star.opacity += star.twinkleSpeed * star.twinkleDirection;
         if (star.opacity > 1 || star.opacity < 0.2) {
             star.twinkleDirection *= -1;
@@ -813,9 +1032,7 @@ function drawStars(progress) {
     });
 }
 
-// Animate sky
 function animateSky() {
-    // Calculate progress based on timer
     let progress;
     if (timerState.totalTime > 0) {
         progress = 1 - (timerState.remainingTime / timerState.totalTime);
@@ -823,13 +1040,8 @@ function animateSky() {
         progress = 0;
     }
     
-    // Get sky colors
     const colors = getInterpolatedSkyColors(progress);
-    
-    // Draw sky
     drawSky(colors);
-    
-    // Draw celestial bodies
     drawSun(progress);
     drawMoon(progress);
     drawStars(progress);
@@ -837,77 +1049,253 @@ function animateSky() {
     requestAnimationFrame(animateSky);
 }
 
-// Event Listeners - wrapped in DOMContentLoaded to ensure DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize DOM elements
-    initDOM();
+// ==================== PARTICLES ====================
+
+function initParticles() {
+    resizeCanvas();
+    createParticles();
+    animateParticles();
+}
+
+function resizeCanvas() {
+    particlesCanvas.width = window.innerWidth;
+    particlesCanvas.height = window.innerHeight;
+}
+
+function createParticles() {
+    particles = [];
+    const particleCount = 30;
     
-    // Initialize particles
-    initParticles();
+    for (let i = 0; i < particleCount; i++) {
+        particles.push({
+            x: Math.random() * particlesCanvas.width,
+            y: Math.random() * particlesCanvas.height,
+            size: Math.random() * 4 + 2,
+            speedX: (Math.random() - 0.5) * 0.5,
+            speedY: (Math.random() - 0.5) * 0.5,
+            opacity: Math.random() * 0.5 + 0.2,
+            type: Math.random() > 0.5 ? 'firefly' : 'leaf'
+        });
+    }
+}
+
+function animateParticles() {
+    particlesCtx.clearRect(0, 0, particlesCanvas.width, particlesCanvas.height);
     
-    // Initialize sky
-    initSky();
-    
-    // Attach event listeners
-    startBtn.addEventListener('click', () => {
-        // Request notification permission on first interaction
-        requestNotificationPermission();
+    particles.forEach(particle => {
+        particle.x += particle.speedX;
+        particle.y += particle.speedY;
         
+        if (particle.x < -10) particle.x = particlesCanvas.width + 10;
+        if (particle.x > particlesCanvas.width + 10) particle.x = -10;
+        if (particle.y < -10) particle.y = particlesCanvas.height + 10;
+        if (particle.y > particlesCanvas.height + 10) particle.y = -10;
+        
+        particlesCtx.beginPath();
+        particlesCtx.globalAlpha = particle.opacity;
+        
+        if (particle.type === 'firefly') {
+            const gradient = particlesCtx.createRadialGradient(
+                particle.x, particle.y, 0,
+                particle.x, particle.y, particle.size * 2
+            );
+            gradient.addColorStop(0, 'rgba(255, 255, 150, 0.8)');
+            gradient.addColorStop(1, 'rgba(255, 255, 150, 0)');
+            particlesCtx.fillStyle = gradient;
+            particlesCtx.arc(particle.x, particle.y, particle.size * 2, 0, Math.PI * 2);
+        } else {
+            particlesCtx.fillStyle = isDarkMode ? 'rgba(100, 150, 100, 0.6)' : 'rgba(80, 120, 80, 0.6)';
+            particlesCtx.ellipse(particle.x, particle.y, particle.size, particle.size * 0.6, 0, 0, Math.PI * 2);
+        }
+        
+        particlesCtx.fill();
+        
+        if (particle.type === 'firefly') {
+            particle.opacity += (Math.random() - 0.5) * 0.1;
+            particle.opacity = Math.max(0.2, Math.min(0.7, particle.opacity));
+        }
+    });
+    
+    particlesCtx.globalAlpha = 1;
+    requestAnimationFrame(animateParticles);
+}
+
+// ==================== EVENT LISTENERS ====================
+
+document.addEventListener('DOMContentLoaded', () => {
+    initDOM();
+    loadFromStorage();
+    
+    // Apply saved settings
+    if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+        themeToggleBtn.querySelector('.theme-icon').textContent = '☀️';
+    }
+    if (highContrast) {
+        document.body.classList.add('high-contrast');
+    }
+    ambientSoundToggle.checked = soundSettings.ambientEnabled;
+    autoStartToggle.checked = options.autoStart;
+    skipBreaksToggle.checked = options.skipBreaks;
+    tickSoundToggle.checked = soundSettings.tickEnabled;
+    volumeSlider.value = soundSettings.volume * 100;
+    
+    // Set active theme
+    themeOptions.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+    });
+    
+    // Set active sound
+    soundBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.sound === soundSettings.soundType);
+    });
+    
+    updateThemeColors();
+    initParticles();
+    initSky();
+    renderTasks();
+    updateDisplay();
+    updateProgress();
+    updateCycle();
+    updateStats();
+    
+    // Start button
+    startBtn.addEventListener('click', () => {
+        requestNotificationPermission();
         if (timerState.isRunning) {
             pauseTimer();
         } else {
             startTimer();
         }
     });
-
+    
+    // Reset button
     resetBtn.addEventListener('click', resetTimer);
-
+    
+    // Skip button
+    skipBtn.addEventListener('click', skipTimer);
+    
+    // Mode buttons
     modeBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             setMode(btn.dataset.mode);
         });
     });
-
+    
     // Theme toggle
     themeToggleBtn.addEventListener('click', toggleTheme);
-
-    // Timer presets
+    
+    // Preset buttons
     presetBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             setCustomDuration(parseInt(btn.dataset.minutes));
         });
     });
-
+    
+    // Custom duration
+    customDurationBtn.addEventListener('click', () => {
+        const minutes = parseInt(customMinutes.value);
+        if (minutes && minutes > 0 && minutes <= 120) {
+            setCustomDuration(minutes);
+        }
+    });
+    
     // Sound buttons
     soundBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             soundSettings.soundType = btn.dataset.sound;
             soundBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            saveToStorage();
         });
     });
-
+    
     // Volume slider
     volumeSlider.addEventListener('input', (e) => {
         soundSettings.volume = e.target.value / 100;
+        saveToStorage();
     });
-
+    
     // Test sound button
     testSoundBtn.addEventListener('click', playAlarm);
-
-    // Task input - session only, no save
-    taskInput.addEventListener('focus', () => {
-        taskInput.classList.add('focus-visible');
+    
+    // Ambient sound toggle
+    ambientSoundToggle.addEventListener('change', (e) => {
+        soundSettings.ambientEnabled = e.target.checked;
+        toggleAmbientSound();
+        saveToStorage();
     });
-
-    taskInput.addEventListener('blur', () => {
-        taskInput.classList.remove('focus-visible');
+    
+    // Auto-start toggle
+    autoStartToggle.addEventListener('change', (e) => {
+        options.autoStart = e.target.checked;
+        saveToStorage();
     });
-
-    // Keyboard shortcuts for accessibility
+    
+    // Skip breaks toggle
+    skipBreaksToggle.addEventListener('change', (e) => {
+        options.skipBreaks = e.target.checked;
+        saveToStorage();
+    });
+    
+    // Tick sound toggle
+    tickSoundToggle.addEventListener('change', (e) => {
+        soundSettings.tickEnabled = e.target.checked;
+        saveToStorage();
+    });
+    
+    // High contrast toggle
+    highContrastToggle.addEventListener('change', (e) => {
+        highContrast = e.target.checked;
+        toggleHighContrast();
+    });
+    
+    // Theme options
+    themeOptions.forEach(btn => {
+        btn.addEventListener('click', () => {
+            setTheme(btn.dataset.theme);
+        });
+    });
+    
+    // Task input
+    addTaskBtn.addEventListener('click', addTask);
+    newTaskInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addTask();
+        }
+    });
+    
+    // Settings button
+    settingsBtn.addEventListener('click', () => {
+        // Scroll to settings section
+        document.querySelector('.options-section').scrollIntoView({ behavior: 'smooth' });
+    });
+    
+    // Shortcuts button
+    shortcutsBtn.addEventListener('click', showShortcuts);
+    
+    // Onboarding modal
+    closeOnboarding.addEventListener('click', hideOnboarding);
+    startJourneyBtn.addEventListener('click', hideOnboarding);
+    
+    // Shortcuts modal
+    closeShortcuts.addEventListener('click', hideShortcuts);
+    
+    // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
+        // Don't trigger shortcuts when typing in inputs
+        const activeElement = document.activeElement;
+        const isInputFocused = activeElement && (
+            activeElement.tagName === 'INPUT' ||
+            activeElement.tagName === 'TEXTAREA'
+        );
+        
+        if (isInputFocused && e.code !== 'Escape') return;
+        
         if (e.code === 'Space' || e.code === 'Enter') {
             e.preventDefault();
+            requestNotificationPermission();
             if (timerState.isRunning) {
                 pauseTimer();
             } else {
@@ -915,29 +1303,32 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        // 'R' for reset
         if (e.code === 'KeyR') {
             e.preventDefault();
             resetTimer();
         }
         
-        // 'T' for theme toggle
         if (e.code === 'KeyT') {
             e.preventDefault();
             toggleTheme();
         }
+        
+        if (e.code === 'KeyS') {
+            e.preventDefault();
+            skipTimer();
+        }
+        
+        if (e.code === 'Escape') {
+            e.preventDefault();
+            hideOnboarding();
+            hideShortcuts();
+        }
     });
-
-    // Window resize for particles and sky
+    
+    // Window resize
     window.addEventListener('resize', () => {
         resizeCanvas();
         resizeSkyCanvas();
         createStars();
     });
-
-    // Initialize display
-    updateDisplay();
-    updateProgress();
-    updateCycle();
-    updateStats();
 });
