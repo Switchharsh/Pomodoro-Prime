@@ -1,138 +1,80 @@
-# Pomodoro Prime
+# Pomodoro Prime 🍅
 
-A beautiful and functional Pomodoro timer Android application built with modern Android development practices.
+A super lite, distraction-free Pomodoro timer for focused work sessions. Built for GitHub Pages.
 
 ## Features
 
-- **Pomodoro Timer**: 25-minute work sessions with automatic break scheduling
+- **Simple Timer**: 25-minute focus sessions with automatic break scheduling
   - Short breaks (5 minutes) after each work session
   - Long breaks (15 minutes) after 4 completed pomodoros
-  - Visual progress indicator with countdown timer
-  - Start, pause, reset, and skip controls
+  - Visual progress indicator with circular SVG ring
+  - Start, pause, and reset controls
 
-- **Task Management**
-  - Create, edit, and delete tasks
-  - Set estimated pomodoros for each task
-  - Track completed pomodoros per task
-  - Mark tasks as complete/incomplete
-  - Select active task for timer
+- **Mode Switching**: Easy toggle between Focus, Short Break, and Long Break
 
-- **Statistics**
-  - Track total work sessions and duration
-  - Daily, weekly, and monthly statistics
-  - Visual progress cards
+- **Task Input**: Simple text field for current task (session-only, no persistence)
 
-- **Settings**
-  - Customizable timer durations
-  - Notification preferences (sound, vibration)
-  - Dark mode support
-  - Auto-start options for breaks and work sessions
+- **ADHD-Friendly Design**:
+  - Clean, minimal interface
+  - High contrast colors
+  - Large touch targets (buttons)
+  - Clear visual feedback
+  - Reduced distractions (no clutter)
 
-- **Background Timer**
-  - Foreground service keeps timer running when app is minimized
-  - Notifications when timer completes
-  - Vibration feedback
-
-## Technology Stack
-
-- **Language**: Kotlin
-- **Architecture**: MVVM with Repository Pattern
-- **UI Framework**: Jetpack Compose / Material Design
-- **Database**: Room (SQLite)
-- **Async**: Coroutines & Flow
-- **Navigation**: Jetpack Navigation
-- **Dependency Injection**: Manual DI (ViewModels)
-
-## Project Structure
-
-```
-app/src/main/java/com/pomodoroprime/
-├── model/                 # Data models
-├── data/
-│   ├── database/          # Room database, entities, DAOs
-│   └── repository/         # Repository layer
-├── service/                # Foreground timer service
-├── notification/            # Notification manager
-└── ui/
-    ├── MainActivity.kt
-    ├── timer/               # Timer screen
-    ├── tasks/               # Tasks screen
-    ├── settings/            # Settings screen
-    └── statistics/           # Statistics screen
-```
+- **GitHub Pages Ready**: Static HTML/CSS/JS - no build tools needed
 
 ## Getting Started
 
-### Prerequisites
+1. Clone or download this repository
+2. Open `index.html` in your browser to test
+3. Deploy to GitHub Pages by pushing to the `main` branch
 
-- Android Studio Hedgehog (2023.1.1) or later
-- JDK 17
-- Android SDK 34
-- Gradle 8.2
+## File Structure
 
-### Building the Project
+```
+Pomodoro-Prime/
+├── index.html          # Main HTML file
+├── styles.css          # CSS styling
+├── script.js           # JavaScript functionality
+└── README.md           # This file
+```
 
-1. Clone the repository
-2. Open the project in Android Studio
-3. Wait for Gradle sync to complete
-4. Build the project: `Build > Make Project`
-5. Run on emulator or device: `Run > Run 'app'`
+## Timer Durations
 
-## Pomodoro Technique
+- **Focus**: 25 minutes
+- **Short Break**: 5 minutes
+- **Long Break**: 15 minutes
 
-The Pomodoro Technique is a time management method developed by Francesco Cirillo:
+## How to Use
 
-1. **Decide** on the task to be done
-2. **Set** the Pomodoro timer (typically 25 minutes)
-3. **Work** on the task until the timer rings
-4. **Take** a short break (typically 5 minutes)
-5. **Repeat** steps 2-4 until you complete four pomodoros
-6. **Take** a long break (typically 15-30 minutes) after four pomodoros
+1. **Start Timer**: Click the Start button or press Space/Enter
+2. **Pause Timer**: Click the Pause button or press Space/Enter
+3. **Reset Timer**: Click the Reset button or press 'R'
+4. **Switch Mode**: Click Focus/Short Break/Long Break buttons
+5. **Enter Task**: Click the task input field and type your current task
 
-## Screens
+## Keyboard Shortcuts
 
-### Timer Screen
-- Large circular progress indicator
-- Digital time display (MM:SS)
-- Current timer type (Work/Short Break/Long Break)
-- Cycle progress (1/4, 2/4, 3/4, 4/4)
-- Completed pomodoros counter
-- Current task display
-- Control buttons (Start/Pause, Reset, Stop, Skip)
+- `Space` or `Enter`: Start/Pause timer
+- `R`: Reset timer
 
-### Tasks Screen
-- Tab navigation (Active/Completed)
-- Task list with cards
-- Add task FAB
-- Task details (title, description, estimated pomodoros)
-- Pomodoro progress bar
-- Complete, select, and delete actions
+## ADHD-Friendly Features
 
-### Statistics Screen
-- Total sessions and duration
-- Today's statistics
-- This week's statistics
-- This month's statistics
-- Refresh button
+- **Large Buttons**: Easy to tap, clear visual hierarchy
+- **High Contrast**: Green for focus, blue for breaks, white text
+- **Visual Feedback**: Progress ring shows time remaining
+- **Minimal Distractions**: Clean interface, no clutter
+- **Session Only**: No task saving - keeps it simple
 
-### Settings Screen
-- Timer duration sliders (Work, Short Break, Long Break)
-- Notification toggles (Notifications, Sound, Vibration)
-- Dark mode toggle
-- Auto-start toggles (Auto Start Breaks, Auto Start Work)
-- Reset to defaults button
+## Browser Support
 
-## Permissions
-
-The app requires the following permissions:
-- `FOREGROUND_SERVICE` - To keep timer running in background
-- `POST_NOTIFICATIONS` - To show timer completion notifications
-- `VIBRATE` - For vibration feedback
+Works in all modern browsers (Chrome, Firefox, Safari, Edge)
+- No external dependencies required
 
 ## License
 
-This project is open source and available for modification and distribution.
+MIT License - Free to use, modify, and distribute
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Feel free to fork and submit pull requests!
