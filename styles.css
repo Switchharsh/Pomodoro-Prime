@@ -707,6 +707,19 @@ body.dark-mode .task-item:hover {
   outline: none;
 }
 
+.task-pomodoros {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  margin-left: auto;
+}
+body.dark-mode .task-pomodoros,
+body.oled-mode .task-pomodoros {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
 /* ==================== STATISTICS SECTION ==================== */
 .stats-section {
   background-color: rgba(255, 255, 255, 0.95);
@@ -1286,9 +1299,512 @@ body.focus-mode .stats-section,
 body.focus-mode .sound-section,
 body.focus-mode .theme-section,
 body.focus-mode .options-section,
-body.focus-mode .tips-section {
+body.focus-mode .tips-section,
+body.focus-mode .achievements-section,
+body.focus-mode .multiplayer-section,
+body.focus-mode .breathing-section {
   display: none;
 }
 body.focus-mode .timer-section {
   margin-bottom: 0;
+}
+
+/* ==================== OLED BLACK MODE ==================== */
+body.oled-mode {
+  --color-bg: #000000;
+  --color-focus: #1E3D1A;
+  --color-focus-light: #2D5A27;
+  --color-short-break: #3D5A42;
+  --color-short-break-light: #5D8A66;
+  --color-long-break: #5A4A3A;
+  --color-long-break-light: #8B7355;
+  --color-text: #FFFFFF;
+  --color-text-muted: #AAAAAA;
+  --color-border: #333333;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.7);
+}
+body.oled-mode .header,
+body.oled-mode section {
+  background-color: #000000;
+}
+body.oled-mode .timer-stat,
+body.oled-mode .stat-item,
+body.oled-mode .task-item,
+body.oled-mode .shortcut-item {
+  background-color: #111111;
+}
+
+/* ==================== CELEBRATION CANVAS ==================== */
+.celebration-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* ==================== XP DISPLAY ==================== */
+.xp-display {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius);
+}
+body.dark-mode .xp-display,
+body.oled-mode .xp-display {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.xp-level {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-focus);
+  text-align: center;
+  margin-bottom: 8px;
+}
+.xp-bar-container {
+  width: 100%;
+  height: 8px;
+  background-color: var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.xp-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-focus), var(--color-focus-light));
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+.xp-text {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* ==================== SESSION NOTES ==================== */
+.session-notes {
+  width: 100%;
+  margin-top: 8px;
+}
+.notes-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+  display: block;
+}
+#sessionNotes {
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: var(--color-white);
+  color: var(--color-text);
+  outline: none;
+  resize: vertical;
+  font-family: inherit;
+}
+body.dark-mode #sessionNotes,
+body.oled-mode #sessionNotes {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+#sessionNotes:focus {
+  border-color: var(--color-focus);
+  box-shadow: 0 0 0 3px rgba(45, 90, 39, 0.2);
+}
+#saveNotesBtn {
+  margin-top: 8px;
+}
+
+/* ==================== TASK POMODORO INPUT ==================== */
+.task-pomodoro-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+#taskPomodoros {
+  width: 70px;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: var(--color-white);
+  color: var(--color-text);
+  outline: none;
+  text-align: center;
+}
+body.dark-mode #taskPomodoros,
+body.oled-mode #taskPomodoros {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+#taskPomodoros:focus {
+  border-color: var(--color-focus);
+  box-shadow: 0 0 0 3px rgba(45, 90, 39, 0.2);
+}
+
+/* ==================== BREATHING EXERCISE ==================== */
+.breathing-section {
+  text-align: center;
+  padding: 30px 20px;
+}
+.breathing-section.hidden {
+  display: none;
+}
+.breathing-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 24px;
+}
+.breathing-circle {
+  width: 150px;
+  height: 150px;
+  margin: 0 auto 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-focus), var(--color-focus-light));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: breathe 8s ease-in-out infinite;
+  box-shadow: 0 0 30px rgba(45, 90, 39, 0.3);
+}
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+}
+.breathing-text {
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ==================== ACHIEVEMENTS SECTION ==================== */
+.achievements-section {
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+body.dark-mode .achievements-section,
+body.oled-mode .achievements-section {
+  background-color: rgba(30, 40, 30, 0.95);
+}
+.achievements-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 16px;
+  text-align: center;
+}
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 12px;
+}
+.achievement-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 8px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius);
+  transition: var(--transition);
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+body.dark-mode .achievement-badge,
+body.oled-mode .achievement-badge {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.achievement-badge.unlocked {
+  opacity: 1;
+  filter: grayscale(0);
+  background-color: rgba(45, 90, 39, 0.1);
+}
+body.dark-mode .achievement-badge.unlocked,
+body.oled-mode .achievement-badge.unlocked {
+  background-color: rgba(74, 124, 67, 0.2);
+}
+.achievement-badge:hover {
+  transform: translateY(-2px);
+}
+.achievement-icon {
+  font-size: 32px;
+  margin-bottom: 4px;
+}
+.achievement-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* ==================== CHART SECTION ==================== */
+.chart-container {
+  margin-top: 20px;
+  padding: 16px;
+  background-color: rgba(0, 0, 0, 0.03);
+  border-radius: var(--radius);
+}
+body.dark-mode .chart-container,
+body.oled-mode .chart-container {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+.chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+  text-align: center;
+}
+#weeklyChart {
+  width: 100%;
+  height: 200px;
+}
+
+/* ==================== AMBIENT SOUNDS ==================== */
+.ambient-sounds {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+}
+.ambient-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+  text-align: center;
+}
+.ambient-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ambient-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ambient-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+.ambient-volume {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--color-border);
+  border-radius: 3px;
+  outline: none;
+}
+.ambient-volume::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-short-break);
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: var(--transition);
+}
+.ambient-volume::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-short-break);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ==================== MULTIPLAYER SECTION ==================== */
+.multiplayer-section {
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+body.dark-mode .multiplayer-section,
+body.oled-mode .multiplayer-section {
+  background-color: rgba(30, 40, 30, 0.95);
+}
+.multiplayer-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 16px;
+  text-align: center;
+}
+.multiplayer-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.join-room {
+  display: flex;
+  gap: 8px;
+}
+#roomIdInput {
+  flex: 1;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: var(--color-white);
+  color: var(--color-text);
+  outline: none;
+}
+body.dark-mode #roomIdInput,
+body.oled-mode #roomIdInput {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+#roomIdInput:focus {
+  border-color: var(--color-focus);
+  box-shadow: 0 0 0 3px rgba(45, 90, 39, 0.2);
+}
+.room-info {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+body.dark-mode .room-info,
+body.oled-mode .room-info {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.room-info.hidden {
+  display: none;
+}
+.room-id-display {
+  font-size: 14px;
+  color: var(--color-text);
+  text-align: center;
+}
+.room-id-display span {
+  font-weight: 700;
+  color: var(--color-focus);
+  font-family: monospace;
+  font-size: 16px;
+}
+.room-members {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.room-member {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: rgba(0, 0, 0, 0.03);
+  border-radius: var(--radius);
+}
+body.dark-mode .room-member,
+body.oled-mode .room-member {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+.member-status {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--color-short-break);
+}
+.member-status.working {
+  background-color: var(--color-focus);
+}
+.member-name {
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+/* ==================== ACHIEVEMENT MODAL ==================== */
+.achievement-modal {
+  z-index: 1100;
+}
+.achievement-content {
+  text-align: center;
+  padding: 30px 20px;
+}
+.achievement-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  animation: achievement-pop 0.5s ease-out;
+}
+@keyframes achievement-pop {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.achievement-name {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-focus);
+  margin-bottom: 8px;
+}
+.achievement-desc {
+  font-size: 16px;
+  color: var(--color-text-muted);
+  margin-bottom: 16px;
+}
+.xp-gain {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-focus);
+  padding: 8px 16px;
+  background-color: rgba(45, 90, 39, 0.1);
+  border-radius: var(--radius);
+  display: inline-block;
+}
+
+/* ==================== HIDDEN UTILITY ==================== */
+.hidden {
+  display: none !important;
+}
+
+/* ==================== RESPONSIVE ADDITIONS ==================== */
+@media (max-width: 600px) {
+  .achievements-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .breathing-circle {
+    width: 120px;
+    height: 120px;
+  }
+  .breathing-text {
+    font-size: 14px;
+  }
+  .multiplayer-controls {
+    flex-direction: column;
+  }
+  .join-room {
+    flex-direction: column;
+  }
+  #roomIdInput {
+    width: 100%;
+  }
 }

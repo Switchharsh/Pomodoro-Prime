@@ -5,14 +5,35 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="description" content="A simple, distraction-free Pomodoro timer for focused work sessions">
 <meta name="theme-color" content="#2D5A27">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Pomodoro Prime - Forest Focus Timer</title>
 <link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('Service Worker registered:', registration);
+        })
+        .catch((error) => {
+          console.log('Service Worker registration failed:', error);
+        });
+    });
+  }
+</script>
 </head>
 <body>
 <!-- Sky Canvas for Day/Night Cycle -->
 <canvas id="skyCanvas" class="sky-canvas" aria-hidden="true"></canvas>
 <!-- Floating Particles Canvas -->
 <canvas id="particlesCanvas" class="particles-canvas" aria-hidden="true"></canvas>
+<!-- Celebration Particles Canvas -->
+<canvas id="celebrationCanvas" class="celebration-canvas" aria-hidden="true"></canvas>
 
 <div class="container">
   <header class="header">
@@ -31,6 +52,15 @@
       </div>
     </div>
     <p class="subtitle">Stay focused, take breaks, repeat</p>
+    
+    <!-- XP Level Display -->
+    <div class="xp-display">
+      <div class="xp-level" id="xpLevel">Level 1: Novice</div>
+      <div class="xp-bar-container">
+        <div class="xp-bar" id="xpBar"></div>
+      </div>
+      <div class="xp-text" id="xpText">0/100 XP</div>
+    </div>
   </header>
 
   <main class="main">
@@ -108,6 +138,13 @@
         <input type="text" id="taskInput" placeholder="What are you working on?" maxlength="60" aria-label="Current task">
       </div>
 
+      <!-- Session Notes -->
+      <div class="session-notes">
+        <label for="sessionNotes" class="notes-label">📝 Session Notes</label>
+        <textarea id="sessionNotes" placeholder="What did you accomplish?" rows="2" aria-label="Session notes"></textarea>
+        <button class="btn-small" id="saveNotesBtn" aria-label="Save notes">Save Notes</button>
+      </div>
+
       <!-- Controls -->
       <div class="controls" role="group" aria-label="Timer controls">
         <button class="btn btn-primary" id="startBtn" aria-label="Start timer">
@@ -157,12 +194,25 @@
       </div>
     </section>
 
+    <!-- Breathing Exercise Section (shown during breaks) -->
+    <section class="breathing-section hidden" id="breathingSection">
+      <h2 class="breathing-title">🧘 Breathing Exercise</h2>
+      <div class="breathing-circle" id="breathingCircle">
+        <div class="breathing-text" id="breathingText">Breathe In</div>
+      </div>
+      <button class="btn-small" id="skipBreathingBtn" aria-label="Skip breathing exercise">Skip</button>
+    </section>
+
     <!-- Task Management -->
     <section class="tasks-section">
       <h2 class="section-title">📋 Tasks</h2>
       <div class="task-input-group">
         <label for="newTaskInput" class="visually-hidden">Add a new task</label>
         <input type="text" id="newTaskInput" placeholder="Add a new task..." maxlength="100" aria-label="New task">
+        <div class="task-pomodoro-input">
+          <label for="taskPomodoros" class="visually-hidden">Estimated pomodoros</label>
+          <input type="number" id="taskPomodoros" min="1" max="10" placeholder="Pomodoros" aria-label="Estimated pomodoros">
+        </div>
         <button class="btn-small" id="addTaskBtn" aria-label="Add task">Add</button>
       </div>
       <ul class="task-list" id="taskList" role="list" aria-label="Task list">
@@ -187,9 +237,23 @@
           <div class="stat-label">Day Streak</div>
         </div>
       </div>
+      
+      <!-- Weekly Chart -->
+      <div class="chart-container">
+        <h3 class="chart-title">Focus Hours This Week</h3>
+        <canvas id="weeklyChart" aria-label="Weekly focus hours chart"></canvas>
+      </div>
     </section>
 
-    <!-- Sound Settings (Simplified) -->
+    <!-- Achievements Section -->
+    <section class="achievements-section">
+      <h2 class="achievements-title">🏆 Achievements</h2>
+      <div class="achievements-grid" id="achievementsGrid">
+        <!-- Achievements dynamically added -->
+      </div>
+    </section>
+
+    <!-- Sound Settings -->
     <section class="sound-section">
       <h2 class="sound-title">🔔 Notification</h2>
       <div class="sound-controls">
@@ -198,6 +262,29 @@
           <input type="range" id="volumeSlider" min="0" max="100" value="50" class="volume-slider" aria-label="Notification volume">
         </div>
         <button class="test-sound-btn" id="testSoundBtn" aria-label="Test notification sound">🎵 Test Sound</button>
+      </div>
+      
+      <!-- Ambient Soundscapes -->
+      <div class="ambient-sounds">
+        <h3 class="ambient-title">🎵 Ambient Soundscapes</h3>
+        <div class="ambient-controls">
+          <div class="ambient-slider">
+            <label for="whiteNoiseVolume" class="ambient-label">White Noise</label>
+            <input type="range" id="whiteNoiseVolume" min="0" max="100" value="0" class="ambient-volume" aria-label="White noise volume">
+          </div>
+          <div class="ambient-slider">
+            <label for="rainVolume" class="ambient-label">Rain</label>
+            <input type="range" id="rainVolume" min="0" max="100" value="0" class="ambient-volume" aria-label="Rain volume">
+          </div>
+          <div class="ambient-slider">
+            <label for="cafeVolume" class="ambient-label">Cafe</label>
+            <input type="range" id="cafeVolume" min="0" max="100" value="0" class="ambient-volume" aria-label="Cafe volume">
+          </div>
+          <div class="ambient-slider">
+            <label for="lofiVolume" class="ambient-label">Lo-Fi</label>
+            <input type="range" id="lofiVolume" min="0" max="100" value="0" class="ambient-volume" aria-label="Lo-Fi volume">
+          </div>
+        </div>
       </div>
     </section>
 
@@ -224,9 +311,39 @@
       </div>
       <div class="theme-option">
         <label class="toggle-label">
+          <input type="checkbox" id="oledToggle" aria-label="Enable OLED black mode">
+          <span>OLED Black Mode</span>
+        </label>
+      </div>
+      <div class="theme-option">
+        <label class="toggle-label">
           <input type="checkbox" id="highContrastToggle" aria-label="Enable high contrast mode">
           <span>High Contrast</span>
         </label>
+      </div>
+    </section>
+
+    <!-- Multiplayer Section -->
+    <section class="multiplayer-section">
+      <h2 class="multiplayer-title">👥 Co-Working</h2>
+      <div class="multiplayer-controls">
+        <button class="btn btn-secondary" id="createRoomBtn" aria-label="Create co-working room">
+          <span class="btn-icon" aria-hidden="true">🏠</span>
+          <span class="btn-text">Create Room</span>
+        </button>
+        <div class="join-room">
+          <label for="roomIdInput" class="visually-hidden">Room ID</label>
+          <input type="text" id="roomIdInput" placeholder="Enter Room ID" aria-label="Room ID">
+          <button class="btn-small" id="joinRoomBtn" aria-label="Join room">Join</button>
+        </div>
+      </div>
+      <div class="room-info hidden" id="roomInfo">
+        <p class="room-id-display">Room ID: <span id="currentRoomId"></span></p>
+        <button class="btn-small" id="copyRoomIdBtn" aria-label="Copy room ID">📋 Copy Link</button>
+        <button class="btn-small" id="leaveRoomBtn" aria-label="Leave room">Leave</button>
+      </div>
+      <div class="room-members" id="roomMembers">
+        <!-- Room members dynamically added -->
       </div>
     </section>
 
@@ -252,6 +369,10 @@
         <label class="toggle-label">
           <input type="checkbox" id="focusModeToggle">
           <span>Focus Mode (hide non-essentials)</span>
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="breathingToggle" checked>
+          <span>Show breathing exercises during breaks</span>
         </label>
       </div>
     </section>
@@ -333,6 +454,22 @@
           <span class="shortcut-desc">Close modals</span>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Achievement Unlocked Modal -->
+<div class="modal achievement-modal" id="achievementModal" role="dialog" aria-modal="true" aria-labelledby="achievementTitle">
+  <div class="modal-content achievement-content">
+    <div class="modal-header">
+      <h2 class="modal-title" id="achievementTitle">🏆 Achievement Unlocked!</h2>
+      <button class="modal-close" id="closeAchievement" aria-label="Close achievement">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="achievement-icon" id="achievementIcon">🌟</div>
+      <p class="achievement-name" id="achievementName">First Pomodoro</p>
+      <p class="achievement-desc" id="achievementDesc">Complete your first focus session!</p>
+      <div class="xp-gain" id="xpGain">+10 XP</div>
     </div>
   </div>
 </div>
