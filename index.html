@@ -3,8 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="description" content="A simple, distraction-free Pomodoro timer for focused work sessions">
-<meta name="theme-color" content="#2D5A27">
+<meta name="description" content="An ADHD-friendly Pomodoro timer with celestial animations, multiple themes, and task management. Stay focused, take breaks, repeat.">
+<meta name="theme-color" id="metaThemeColor" content="#2D5A27">
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌲</text></svg>">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pomodoro Prime">
+
+<meta property="og:title" content="Pomodoro Prime - Forest Focus Timer">
+<meta property="og:description" content="An ADHD-friendly Pomodoro timer with celestial animations and multiple themes.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Pomodoro Prime">
+
 <title>Pomodoro Prime - Forest Focus Timer</title>
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -19,9 +31,6 @@
     <div class="header-top">
       <h1 class="title">🌲 Pomodoro Prime</h1>
       <div class="header-controls">
-        <button class="icon-btn" id="settingsBtn" aria-label="Open settings" aria-expanded="false">
-          <span aria-hidden="true">⚙️</span>
-        </button>
         <button class="icon-btn" id="shortcutsBtn" aria-label="Show keyboard shortcuts">
           <span aria-hidden="true">⌨️</span>
         </button>
@@ -37,57 +46,64 @@
     <!-- Timer Display -->
     <section class="timer-section" aria-live="polite">
       <div class="timer-type" id="timerType" role="status">Focus</div>
-      
-      <div class="timer-display-container">
-        <div class="timer-display" id="timerDisplay" aria-label="Time remaining">25:00</div>
-        
-        <!-- Timer Info -->
-        <div class="timer-info">
-          <div class="timer-stat">
-            <span class="timer-stat-label">Progress</span>
-            <span class="timer-stat-value" id="progressPercent">0%</span>
+
+      <!-- Ring with countdown centered inside -->
+      <div class="timer-visual">
+        <div class="timer-progress">
+          <div class="progress-ring" id="progressRing">
+            <svg class="progress-svg" viewBox="0 0 100 100" role="img" aria-label="Timer progress">
+              <defs>
+                <linearGradient id="timerSkyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" style="stop-color:#87CEEB;stop-opacity:1" />
+                  <stop offset="50%" style="stop-color:#E0F7FA;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#FFF9C4;stop-opacity:1" />
+                </linearGradient>
+                <radialGradient id="celestialGlow">
+                  <stop offset="0%" style="stop-color:#FFD700;stop-opacity:0.8" />
+                  <stop offset="100%" style="stop-color:#FFD700;stop-opacity:0" />
+                </radialGradient>
+                <clipPath id="timerClip">
+                  <circle cx="50" cy="50" r="44"/>
+                </clipPath>
+              </defs>
+
+              <!-- Background circle with sky gradient -->
+              <circle class="progress-bg" cx="50" cy="50" r="45" fill="url(#timerSkyGradient)" stroke="none"/>
+
+              <!-- Mini stars inside timer (shown at night) -->
+              <g id="timerStars" clip-path="url(#timerClip)" opacity="0"></g>
+
+              <!-- Progress ring -->
+              <circle class="progress-track" cx="50" cy="50" r="45" fill="none" stroke-width="5"/>
+              <circle class="progress-bar" id="progressBar" cx="50" cy="50" r="45" fill="none" stroke-width="5"
+                stroke-dasharray="283" stroke-dashoffset="0" stroke-linecap="round"/>
+
+              <!-- Celestial Body (Sun/Moon) -->
+              <g id="celestialBody" class="celestial-body" clip-path="url(#timerClip)">
+                <circle id="celestialGlowEffect" cx="50" cy="70" r="18" fill="url(#celestialGlow)" opacity="0"/>
+                <circle id="celestialCircle" cx="50" cy="70" r="6" fill="#FFD700"/>
+              </g>
+            </svg>
           </div>
-          <div class="timer-stat">
-            <span class="timer-stat-label">Elapsed</span>
-            <span class="timer-stat-value" id="timeElapsed">0:00</span>
-          </div>
-          <div class="timer-stat">
-            <span class="timer-stat-label">Remaining</span>
-            <span class="timer-stat-value" id="timeRemaining">25:00</span>
-          </div>
+        </div>
+        <div class="timer-center">
+          <div class="timer-display" id="timerDisplay" aria-label="Time remaining">25:00</div>
         </div>
       </div>
 
-      <div class="timer-progress">
-        <div class="progress-ring" id="progressRing">
-          <svg class="progress-svg" viewBox="0 0 100 100" role="img" aria-label="Timer progress">
-            <!-- Mini sky gradient background inside ring -->
-            <defs>
-              <linearGradient id="timerSkyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" style="stop-color:#87CEEB;stop-opacity:1" />
-                <stop offset="50%" style="stop-color:#E0F7FA;stop-opacity:1" />
-                <stop offset="100%" style="stop-color:#FFF9C4;stop-opacity:1" />
-              </linearGradient>
-              <radialGradient id="celestialGlow">
-                <stop offset="0%" style="stop-color:#FFD700;stop-opacity:0.8" />
-                <stop offset="100%" style="stop-color:#FFD700;stop-opacity:0" />
-              </radialGradient>
-            </defs>
-            
-            <!-- Background circle with sky gradient -->
-            <circle class="progress-bg" cx="50" cy="50" r="45" fill="url(#timerSkyGradient)" stroke="none"/>
-            
-            <!-- Progress ring -->
-            <circle class="progress-track" cx="50" cy="50" r="45" fill="none" stroke-width="6"/>
-            <circle class="progress-bar" id="progressBar" cx="50" cy="50" r="45" fill="none" stroke-width="6"
-              stroke-dasharray="283" stroke-dashoffset="0" stroke-linecap="round"/>
-            
-            <!-- Celestial Body (Sun/Moon) with glow -->
-            <g id="celestialBody" class="celestial-body">
-              <circle id="celestialGlowEffect" cx="50" cy="50" r="20" fill="url(#celestialGlow)" opacity="0"/>
-              <circle id="celestialCircle" cx="50" cy="50" r="8" fill="#FFD700"/>
-            </g>
-          </svg>
+      <!-- Timer Stats -->
+      <div class="timer-info">
+        <div class="timer-stat">
+          <span class="timer-stat-label">Progress</span>
+          <span class="timer-stat-value" id="progressPercent">0%</span>
+        </div>
+        <div class="timer-stat">
+          <span class="timer-stat-label">Elapsed</span>
+          <span class="timer-stat-value" id="timeElapsed">00:00</span>
+        </div>
+        <div class="timer-stat">
+          <span class="timer-stat-label">Remaining</span>
+          <span class="timer-stat-value" id="timeRemaining">25:00</span>
         </div>
       </div>
 
@@ -126,15 +142,15 @@
 
       <!-- Mode Toggle -->
       <div class="mode-toggle" role="tablist" aria-label="Timer mode">
-        <button class="mode-btn active" data-mode="focus" role="tab" aria-selected="true" aria-label="Focus mode">
+        <button class="mode-btn active" data-mode="focus" role="tab" aria-selected="true">
           <span class="mode-icon" aria-hidden="true">🌳</span>
           <span class="mode-label">Focus</span>
         </button>
-        <button class="mode-btn" data-mode="short" role="tab" aria-selected="false" aria-label="Short break mode">
+        <button class="mode-btn" data-mode="short" role="tab" aria-selected="false">
           <span class="mode-icon" aria-hidden="true">🌿</span>
           <span class="mode-label">Short</span>
         </button>
-        <button class="mode-btn" data-mode="long" role="tab" aria-selected="false" aria-label="Long break mode">
+        <button class="mode-btn" data-mode="long" role="tab" aria-selected="false">
           <span class="mode-icon" aria-hidden="true">🍃</span>
           <span class="mode-label">Long</span>
         </button>
@@ -152,7 +168,7 @@
         <div class="custom-duration">
           <label for="customMinutes" class="visually-hidden">Custom duration in minutes</label>
           <input type="number" id="customMinutes" min="1" max="120" placeholder="Custom" aria-label="Custom duration in minutes">
-          <button class="btn-small" id="customDurationBtn" aria-label="Set custom duration">Set</button>
+          <button class="btn btn-secondary btn-small" id="customDurationBtn" aria-label="Set custom duration">Set</button>
         </div>
       </div>
     </section>
@@ -163,11 +179,9 @@
       <div class="task-input-group">
         <label for="newTaskInput" class="visually-hidden">Add a new task</label>
         <input type="text" id="newTaskInput" placeholder="Add a new task..." maxlength="100" aria-label="New task">
-        <button class="btn-small" id="addTaskBtn" aria-label="Add task">Add</button>
+        <button class="btn btn-secondary btn-small" id="addTaskBtn" aria-label="Add task">Add</button>
       </div>
-      <ul class="task-list" id="taskList" role="list" aria-label="Task list">
-        <!-- Tasks dynamically added -->
-      </ul>
+      <ul class="task-list" id="taskList" role="list" aria-label="Task list"></ul>
     </section>
 
     <!-- Statistics Section -->
@@ -189,12 +203,24 @@
       </div>
     </section>
 
-    <!-- Sound Settings (Simplified) -->
+    <!-- Sound Settings -->
     <section class="sound-section">
-      <h2 class="sound-title">🔔 Notification</h2>
+      <h2 class="sound-title">🔔 Sound</h2>
       <div class="sound-controls">
+        <div class="sound-type-selector">
+          <label class="sound-label">Notification Sound</label>
+          <div class="sound-type-buttons">
+            <button class="sound-type-btn active" data-sound="chime" aria-pressed="true">🔔 Chime</button>
+            <button class="sound-type-btn" data-sound="bell" aria-pressed="false">🔕 Bell</button>
+            <button class="sound-type-btn" data-sound="digital" aria-pressed="false">📱 Digital</button>
+            <button class="sound-type-btn" data-sound="gentle" aria-pressed="false">🎵 Gentle</button>
+          </div>
+        </div>
         <div class="sound-option">
-          <label for="volumeSlider" class="sound-label">Volume</label>
+          <div class="sound-label-row">
+            <label for="volumeSlider" class="sound-label">Volume</label>
+            <span class="volume-value" id="volumeValue" aria-live="polite">50%</span>
+          </div>
           <input type="range" id="volumeSlider" min="0" max="100" value="50" class="volume-slider" aria-label="Notification volume">
         </div>
         <button class="test-sound-btn" id="testSoundBtn" aria-label="Test notification sound">🎵 Test Sound</button>
@@ -203,26 +229,35 @@
 
     <!-- Theme Settings -->
     <section class="theme-section">
-      <h2 class="theme-title">🎨 Theme</h2>
+      <h2 class="theme-title">🎨 Theme & Effects</h2>
       <div class="theme-buttons">
-        <button class="theme-option active" data-theme="forest" aria-label="Forest theme">
+        <button class="theme-option active" data-theme="forest" aria-label="Forest theme" aria-pressed="true">
           <span class="theme-emoji" aria-hidden="true">🌲</span>
           <span class="theme-name">Forest</span>
         </button>
-        <button class="theme-option" data-theme="ocean" aria-label="Ocean theme">
+        <button class="theme-option" data-theme="ocean" aria-label="Ocean theme" aria-pressed="false">
           <span class="theme-emoji" aria-hidden="true">🌊</span>
           <span class="theme-name">Ocean</span>
         </button>
-        <button class="theme-option" data-theme="mountain" aria-label="Mountain theme">
+        <button class="theme-option" data-theme="mountain" aria-label="Mountain theme" aria-pressed="false">
           <span class="theme-emoji" aria-hidden="true">🏔️</span>
           <span class="theme-name">Mountain</span>
         </button>
-        <button class="theme-option" data-theme="space" aria-label="Space theme">
+        <button class="theme-option" data-theme="space" aria-label="Space theme" aria-pressed="false">
           <span class="theme-emoji" aria-hidden="true">🌌</span>
           <span class="theme-name">Space</span>
         </button>
       </div>
-      <div class="theme-option">
+      <div class="weather-selector">
+        <label class="sound-label">Weather Effect</label>
+        <div class="weather-buttons">
+          <button class="weather-btn active" data-weather="auto" aria-pressed="true">🌤️ Auto</button>
+          <button class="weather-btn" data-weather="clear" aria-pressed="false">☀️ Clear</button>
+          <button class="weather-btn" data-weather="rain" aria-pressed="false">🌧️ Rain</button>
+          <button class="weather-btn" data-weather="snow" aria-pressed="false">❄️ Snow</button>
+        </div>
+      </div>
+      <div class="high-contrast-option">
         <label class="toggle-label">
           <input type="checkbox" id="highContrastToggle" aria-label="Enable high contrast mode">
           <span>High Contrast</span>
@@ -246,10 +281,6 @@
           <span>Skip breaks</span>
         </label>
         <label class="toggle-label">
-          <input type="checkbox" id="tickSoundToggle">
-          <span>Tick sound every minute</span>
-        </label>
-        <label class="toggle-label">
           <input type="checkbox" id="focusModeToggle">
           <span>Focus Mode (hide non-essentials)</span>
         </label>
@@ -269,8 +300,11 @@
   </main>
 </div>
 
+<!-- Focus Mode Exit Button (visible only in focus mode) -->
+<button class="focus-exit-btn" id="focusExitBtn" aria-label="Exit focus mode">✕ Exit Focus</button>
+
 <!-- Onboarding Modal -->
-<div class="modal" id="onboardingModal" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+<div class="modal" id="onboardingModal" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle" aria-hidden="true">
   <div class="modal-content">
     <div class="modal-header">
       <h2 class="modal-title" id="onboardingTitle">Welcome to Pomodoro Prime! 🌲</h2>
@@ -304,7 +338,7 @@
 </div>
 
 <!-- Keyboard Shortcuts Modal -->
-<div class="modal" id="shortcutsModal" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle">
+<div class="modal" id="shortcutsModal" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle" aria-hidden="true">
   <div class="modal-content">
     <div class="modal-header">
       <h2 class="modal-title" id="shortcutsTitle">⌨️ Keyboard Shortcuts</h2>
@@ -329,14 +363,26 @@
           <span class="shortcut-desc">Skip to next mode</span>
         </div>
         <div class="shortcut-item">
+          <kbd class="key">F</kbd>
+          <span class="shortcut-desc">Toggle focus mode</span>
+        </div>
+        <div class="shortcut-item">
           <kbd class="key">Esc</kbd>
-          <span class="shortcut-desc">Close modals</span>
+          <span class="shortcut-desc">Close modals / Exit focus mode</span>
         </div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Service Worker for offline support -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+</script>
 <script src="script.js"></script>
 </body>
 </html>
