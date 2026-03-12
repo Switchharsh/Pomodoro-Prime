@@ -418,33 +418,6 @@ body.dark-mode .timer-stat {
   transform: scale(1.2);
 }
 
-/* Task Input */
-.task-input {
-  width: 100%;
-  max-width: 100%;
-}
-#taskInput {
-  width: 100%;
-  padding: 12px 16px;
-  font-size: 16px;
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius);
-  background-color: var(--color-white);
-  color: var(--color-text);
-  outline: none;
-  transition: var(--transition);
-}
-body.dark-mode #taskInput {
-  background-color: rgba(0, 0, 0, 0.2);
-}
-#taskInput:focus {
-  border-color: var(--color-focus);
-  box-shadow: 0 0 0 3px rgba(45, 90, 39, 0.2);
-}
-#taskInput::placeholder {
-  color: var(--color-text-muted);
-}
-
 /* Controls */
 .controls {
   display: flex;
@@ -650,6 +623,60 @@ body.dark-mode .tasks-section {
   gap: 8px;
   margin-bottom: 16px;
 }
+
+/* Task Controls (Sort/Filter) */
+.task-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.task-control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 140px;
+}
+.task-control-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.task-select {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: var(--color-white);
+  color: var(--color-text);
+  outline: none;
+  cursor: pointer;
+  transition: var(--transition);
+}
+body.dark-mode .task-select {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+.task-select:hover,
+.task-select:focus {
+  border-color: var(--color-focus);
+  box-shadow: 0 0 0 3px rgba(45, 90, 39, 0.2);
+}
+
+/* CSV Import/Export Controls */
+.task-csv-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.task-csv-controls .btn {
+  flex: 1;
+  min-width: 120px;
+  justify-content: center;
+}
 #newTaskInput {
   flex: 1;
   padding: 12px 16px;
@@ -772,6 +799,10 @@ body.dark-mode .stat-item {
   font-weight: 700;
   color: var(--color-focus);
   margin-bottom: 4px;
+}
+/* Dark mode: Use lighter focus color for better contrast (WCAG AA: 4.5:1) */
+body.dark-mode .stat-value {
+  color: var(--color-focus-light);
 }
 .stat-label {
   font-size: 12px;
@@ -952,7 +983,7 @@ body.dark-mode .theme-section {
 }
 .theme-buttons {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   margin-bottom: 16px;
 }
@@ -1005,6 +1036,7 @@ body.dark-mode .theme-option {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
+  margin-bottom: 4px;
 }
 .weather-btn {
   padding: 8px 6px;
@@ -1384,6 +1416,10 @@ kbd {
   .weather-buttons {
     grid-template-columns: repeat(2, 1fr);
   }
+  .weather-btn {
+    font-size: 11px;
+    padding: 7px 4px;
+  }
   .sound-type-buttons {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1399,6 +1435,20 @@ kbd {
     right: 10px;
     padding: 8px 14px;
     font-size: 12px;
+  }
+  
+  /* Task controls responsive */
+  .task-controls {
+    flex-direction: column;
+  }
+  .task-control-group {
+    min-width: 100%;
+  }
+  .task-csv-controls {
+    flex-direction: column;
+  }
+  .task-csv-controls .btn {
+    width: 100%;
   }
 }
 
@@ -1432,6 +1482,12 @@ kbd {
   }
   #customMinutes {
     width: 100%;
+  }
+  
+  /* Task controls responsive for very small screens */
+  .task-select {
+    font-size: 13px;
+    padding: 8px 10px;
   }
 }
 

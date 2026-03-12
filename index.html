@@ -118,12 +118,6 @@
         </span>
       </div>
 
-      <!-- Task Input -->
-      <div class="task-input">
-        <label for="taskInput" class="visually-hidden">Current task</label>
-        <input type="text" id="taskInput" placeholder="What are you working on?" maxlength="60" aria-label="Current task">
-      </div>
-
       <!-- Controls -->
       <div class="controls" role="group" aria-label="Timer controls">
         <button class="btn btn-primary" id="startBtn" aria-label="Start timer">
@@ -176,11 +170,48 @@
     <!-- Task Management -->
     <section class="tasks-section">
       <h2 class="section-title">📋 Tasks</h2>
+      
+      <!-- Task Input -->
       <div class="task-input-group">
         <label for="newTaskInput" class="visually-hidden">Add a new task</label>
         <input type="text" id="newTaskInput" placeholder="Add a new task..." maxlength="100" aria-label="New task">
         <button class="btn btn-secondary btn-small" id="addTaskBtn" aria-label="Add task">Add</button>
       </div>
+      
+      <!-- Task Controls -->
+      <div class="task-controls">
+        <!-- Sorting Controls -->
+        <div class="task-control-group">
+          <label class="task-control-label" for="taskSort">Sort by:</label>
+          <select id="taskSort" class="task-select" aria-label="Sort tasks">
+            <option value="original">Original Order</option>
+            <option value="status">Status</option>
+          </select>
+        </div>
+        
+        <!-- Filtering Controls -->
+        <div class="task-control-group">
+          <label class="task-control-label" for="taskFilter">Filter:</label>
+          <select id="taskFilter" class="task-select" aria-label="Filter tasks">
+            <option value="all">All Tasks</option>
+            <option value="completed">Completed Only</option>
+            <option value="pending">Pending Only</option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- CSV Import/Export -->
+      <div class="task-csv-controls">
+        <button class="btn btn-secondary btn-small" id="exportCsvBtn" aria-label="Export tasks to CSV">
+          📥 Export CSV
+        </button>
+        <button class="btn btn-secondary btn-small" id="importCsvBtn" aria-label="Import tasks from CSV">
+          📤 Import CSV
+        </button>
+        <input type="file" id="csvFileInput" accept=".csv" class="visually-hidden" aria-label="Select CSV file">
+      </div>
+      
+      <!-- Task List -->
       <ul class="task-list" id="taskList" role="list" aria-label="Task list"></ul>
     </section>
 
@@ -247,6 +278,26 @@
           <span class="theme-emoji" aria-hidden="true">🌌</span>
           <span class="theme-name">Space</span>
         </button>
+        <button class="theme-option" data-theme="sunset" aria-label="Sunset theme" aria-pressed="false">
+          <span class="theme-emoji" aria-hidden="true">🌅</span>
+          <span class="theme-name">Sunset</span>
+        </button>
+        <button class="theme-option" data-theme="cherry" aria-label="Cherry Blossom theme" aria-pressed="false">
+          <span class="theme-emoji" aria-hidden="true">🌸</span>
+          <span class="theme-name">Cherry</span>
+        </button>
+        <button class="theme-option" data-theme="aurora" aria-label="Aurora theme" aria-pressed="false">
+          <span class="theme-emoji" aria-hidden="true">✨</span>
+          <span class="theme-name">Aurora</span>
+        </button>
+        <button class="theme-option" data-theme="desert" aria-label="Desert theme" aria-pressed="false">
+          <span class="theme-emoji" aria-hidden="true">🏜️</span>
+          <span class="theme-name">Desert</span>
+        </button>
+        <button class="theme-option" data-theme="midnight" aria-label="Midnight theme" aria-pressed="false">
+          <span class="theme-emoji" aria-hidden="true">🌑</span>
+          <span class="theme-name">Midnight</span>
+        </button>
       </div>
       <div class="weather-selector">
         <label class="sound-label">Weather Effect</label>
@@ -255,6 +306,10 @@
           <button class="weather-btn" data-weather="clear" aria-pressed="false">☀️ Clear</button>
           <button class="weather-btn" data-weather="rain" aria-pressed="false">🌧️ Rain</button>
           <button class="weather-btn" data-weather="snow" aria-pressed="false">❄️ Snow</button>
+          <button class="weather-btn" data-weather="thunderstorm" aria-pressed="false">⛈️ Thunder</button>
+          <button class="weather-btn" data-weather="cloudy" aria-pressed="false">☁️ Cloudy</button>
+          <button class="weather-btn" data-weather="fog" aria-pressed="false">🌫️ Fog</button>
+          <button class="weather-btn" data-weather="sunny" aria-pressed="false">🌞 Sunny</button>
         </div>
       </div>
       <div class="high-contrast-option">

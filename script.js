@@ -29,6 +29,8 @@ let currentTheme = 'forest';
 let isDarkMode = false;
 let highContrast = false;
 let weatherEffect = 'auto';
+// Weather cycling: tracks index for auto weather rotation (0=clear, 1=rain, 2=snow)
+let weatherCycleIndex = 0;
 
 let options = {
   autoStart: false,
@@ -38,6 +40,12 @@ let options = {
 
 let tasks = [];
 
+// Task View State (Sorting and Filtering)
+let taskViewState = {
+  sortBy: 'original', // 'original' or 'status'
+  filterBy: 'all'     // 'all', 'completed', or 'pending'
+};
+
 const DURATIONS = {
   focus: 25 * 60 * 1000,
   short: 5 * 60 * 1000,
@@ -45,12 +53,14 @@ const DURATIONS = {
 };
 
 // ==================== DOM ELEMENTS ====================
-let timerDisplay, timerType, progressBar, currentCycle, startBtn, resetBtn, skipBtn, taskInput, modeBtns;
+let timerDisplay, timerType, progressBar, currentCycle, startBtn, resetBtn, skipBtn, modeBtns;
 let themeToggleBtn, presetBtns, volumeSlider, testSoundBtn;
 let statPomodoros, statFocusTime, statStreak;
 let progressPercent, timeElapsed, timeRemaining;
 let customMinutes, customDurationBtn;
 let newTaskInput, addTaskBtn, taskList;
+let taskSort, taskFilter;
+let exportCsvBtn, importCsvBtn, csvFileInput;
 let shortcutsBtn, optionsToggle, optionsList;
 let onboardingModal, closeOnboarding, startJourneyBtn;
 let shortcutsModal, closeShortcuts;
@@ -67,48 +77,103 @@ let timerStarsInitialized = false;
 // ==================== THEME COLORS ====================
 const THEME_COLORS = {
   forest: {
-    sunrise:   { top: [135, 206, 235], middle: [255, 183,  77], bottom: [255, 127,  80] },
-    morning:   { top: [135, 206, 235], middle: [176, 224, 230], bottom: [255, 255, 255] },
-    midday:    { top: [ 70, 130, 180], middle: [135, 206, 235], bottom: [173, 216, 230] },
-    afternoon: { top: [100, 149, 237], middle: [255, 218, 185], bottom: [255, 160, 122] },
-    sunset:    { top: [ 72,  61, 139], middle: [255, 140,   0], bottom: [255,  69,   0] },
-    night:     { top: [ 10,  10,  30], middle: [ 20,  20,  50], bottom: [ 30,  30,  70] },
+    sunrise:   { top: [135, 206, 235], middle: [255, 200,  87], bottom: [255, 140,  66] },
+    morning:   { top: [135, 206, 235], middle: [180, 230, 180], bottom: [220, 245, 220] },
+    midday:    { top: [ 60, 140,  80], middle: [100, 180, 120], bottom: [180, 220, 190] },
+    afternoon: { top: [ 80, 140,  70], middle: [255, 200, 120], bottom: [255, 160, 100] },
+    sunset:    { top: [ 50,  70,  50], middle: [255, 130,  50], bottom: [255,  80,  40] },
+    night:     { top: [  8,  25,  15], middle: [ 15,  35,  25], bottom: [ 25,  50,  40] },
     focus: '#2D5A27', focusLight: '#4A7C43',
     short: '#5D8A66', shortLight: '#8AB896',
     long: '#8B7355',  longLight: '#B8A99A'
   },
   ocean: {
     sunrise:   { top: [135, 206, 250], middle: [255, 200, 150], bottom: [255, 150, 100] },
-    morning:   { top: [135, 206, 250], middle: [173, 216, 230], bottom: [240, 248, 255] },
-    midday:    { top: [ 30, 144, 255], middle: [135, 206, 250], bottom: [173, 216, 230] },
-    afternoon: { top: [ 65, 105, 225], middle: [255, 200, 150], bottom: [255, 150, 100] },
-    sunset:    { top: [ 25,  25, 112], middle: [255, 140,   0], bottom: [255, 100,  50] },
-    night:     { top: [ 10,  10,  40], middle: [ 20,  30,  60], bottom: [ 30,  50,  80] },
+    morning:   { top: [135, 206, 250], middle: [180, 225, 245], bottom: [235, 250, 255] },
+    midday:    { top: [ 20, 120, 200], middle: [ 60, 160, 240], bottom: [180, 225, 245] },
+    afternoon: { top: [ 50, 100, 180], middle: [255, 200, 150], bottom: [255, 150, 100] },
+    sunset:    { top: [ 15,  30,  80], middle: [255, 130,  60], bottom: [255,  90,  50] },
+    night:     { top: [  5,  15,  40], middle: [ 10,  30,  60], bottom: [ 20,  50,  90] },
     focus: '#1E90FF', focusLight: '#4169E1',
     short: '#20B2AA', shortLight: '#5DADE2',
     long: '#008B8B',  longLight: '#48D1CC'
   },
   mountain: {
     sunrise:   { top: [176, 196, 222], middle: [255, 218, 185], bottom: [210, 180, 140] },
-    morning:   { top: [176, 196, 222], middle: [230, 230, 250], bottom: [255, 250, 250] },
-    midday:    { top: [135, 206, 235], middle: [176, 196, 222], bottom: [200, 200, 220] },
-    afternoon: { top: [119, 136, 153], middle: [255, 218, 185], bottom: [210, 180, 140] },
-    sunset:    { top: [ 47,  79,  79], middle: [255, 140,   0], bottom: [210, 105,  30] },
-    night:     { top: [ 15,  15,  25], middle: [ 25,  25,  40], bottom: [ 40,  40,  60] },
+    morning:   { top: [176, 196, 222], middle: [230, 235, 245], bottom: [250, 250, 255] },
+    midday:    { top: [120, 160, 190], middle: [160, 185, 205], bottom: [210, 220, 235] },
+    afternoon: { top: [100, 130, 160], middle: [255, 210, 170], bottom: [210, 170, 130] },
+    sunset:    { top: [ 40,  60,  70], middle: [255, 140,  50], bottom: [200, 100,  40] },
+    night:     { top: [ 12,  18,  28], middle: [ 22,  28,  42], bottom: [ 35,  42,  58] },
     focus: '#6B8E23', focusLight: '#8B9A46',
     short: '#8B4513', shortLight: '#CD853F',
     long: '#556B2F',  longLight: '#8B7355'
   },
   space: {
-    sunrise:   { top: [ 75,   0, 130], middle: [255, 100, 100], bottom: [255, 150, 150] },
-    morning:   { top: [ 75,   0, 130], middle: [147, 112, 219], bottom: [186,  85, 211] },
-    midday:    { top: [ 25,  25, 112], middle: [ 75,   0, 130], bottom: [147, 112, 219] },
-    afternoon: { top: [ 72,  61, 139], middle: [255, 100, 100], bottom: [255, 150, 150] },
+    sunrise:   { top: [ 75,   0, 130], middle: [255, 120, 100], bottom: [255, 160, 150] },
+    morning:   { top: [ 75,   0, 130], middle: [147, 112, 219], bottom: [200, 110, 230] },
+    midday:    { top: [ 20,  30, 100], middle: [ 75,   0, 130], bottom: [147, 112, 219] },
+    afternoon: { top: [ 60,  50, 120], middle: [255, 120, 100], bottom: [255, 160, 150] },
     sunset:    { top: [  0,   0,   0], middle: [255, 100, 100], bottom: [255,  50,  50] },
-    night:     { top: [  5,   5,  15], middle: [ 10,  10,  25], bottom: [ 20,  20,  35] },
+    night:     { top: [  3,   3,  12], middle: [  8,   8,  25], bottom: [ 15,  15,  35] },
     focus: '#9400D3', focusLight: '#BA55D3',
     short: '#FF6347', shortLight: '#FFA07A',
     long: '#32CD32',  longLight: '#90EE90'
+  },
+  sunset: {
+    sunrise:   { top: [255, 120,  80], middle: [255, 180, 100], bottom: [255, 220, 150] },
+    morning:   { top: [255, 160, 100], middle: [255, 200, 140], bottom: [255, 235, 200] },
+    midday:    { top: [255, 140,  80], middle: [255, 190, 120], bottom: [255, 220, 180] },
+    afternoon: { top: [255, 100,  60], middle: [255, 160,  90], bottom: [255, 200, 140] },
+    sunset:    { top: [ 60,  20,  80], middle: [255, 100,  50], bottom: [255,  60,  30] },
+    night:     { top: [ 15,  10,  30], middle: [ 25,  15,  45], bottom: [ 40,  25,  60] },
+    focus: '#FF6B35', focusLight: '#FF8C5A',
+    short: '#E91E63', shortLight: '#F48FB1',
+    long: '#9C27B0', longLight: '#CE93D8'
+  },
+  cherry: {
+    sunrise:   { top: [255, 182, 193], middle: [255, 218, 223], bottom: [255, 240, 245] },
+    morning:   { top: [255, 192, 203], middle: [255, 228, 235], bottom: [255, 248, 250] },
+    midday:    { top: [255, 200, 210], middle: [255, 230, 240], bottom: [255, 245, 250] },
+    afternoon: { top: [255, 180, 195], middle: [255, 220, 230], bottom: [255, 240, 248] },
+    sunset:    { top: [200, 100, 140], middle: [255, 150, 180], bottom: [255, 200, 220] },
+    night:     { top: [ 25,  15,  25], middle: [ 40,  25,  40], bottom: [ 60,  40,  55] },
+    focus: '#FF69B4', focusLight: '#FFB6C1',
+    short: '#FFB6C1', shortLight: '#FFC0CB',
+    long: '#DB7093', longLight: '#FFB6C1'
+  },
+  aurora: {
+    sunrise:   { top: [  0, 150, 136], middle: [100, 200, 180], bottom: [150, 230, 210] },
+    morning:   { top: [  0, 180, 160], middle: [ 80, 200, 190], bottom: [180, 240, 230] },
+    midday:    { top: [ 20, 140, 130], middle: [ 60, 180, 170], bottom: [140, 220, 210] },
+    afternoon: { top: [ 40, 120, 140], middle: [100, 180, 200], bottom: [160, 220, 230] },
+    sunset:    { top: [ 20,  40, 100], middle: [100, 100, 180], bottom: [180, 150, 200] },
+    night:     { top: [  5,  15,  25], middle: [ 10,  30,  50], bottom: [ 20,  50,  80] },
+    focus: '#00CED1', focusLight: '#48D1CC',
+    short: '#7B68EE', shortLight: '#9370DB',
+    long: '#20B2AA', longLight: '#66CDAA'
+  },
+  desert: {
+    sunrise:   { top: [255, 200, 120], middle: [255, 220, 150], bottom: [255, 240, 200] },
+    morning:   { top: [255, 210, 130], middle: [255, 230, 170], bottom: [255, 245, 220] },
+    midday:    { top: [255, 200, 100], middle: [255, 225, 150], bottom: [255, 240, 200] },
+    afternoon: { top: [255, 180,  90], middle: [255, 210, 140], bottom: [255, 230, 190] },
+    sunset:    { top: [ 80,  40,  20], middle: [255, 140,  60], bottom: [255, 100,  40] },
+    night:     { top: [ 20,  15,  10], middle: [ 35,  28,  20], bottom: [ 55,  45,  35] },
+    focus: '#D2691E', focusLight: '#F4A460',
+    short: '#CD853F', shortLight: '#DEB887',
+    long: '#8B4513', longLight: '#A0522D'
+  },
+  midnight: {
+    sunrise:   { top: [ 20,  30,  80], middle: [ 40,  50, 100], bottom: [ 60,  70, 120] },
+    morning:   { top: [ 25,  35,  90], middle: [ 50,  60, 110], bottom: [ 70,  80, 130] },
+    midday:    { top: [ 30,  40,  70], middle: [ 50,  60,  90], bottom: [ 80,  90, 120] },
+    afternoon: { top: [ 25,  35,  75], middle: [ 45,  55,  95], bottom: [ 70,  80, 115] },
+    sunset:    { top: [ 10,  15,  40], middle: [ 60,  50,  80], bottom: [ 80,  60,  90] },
+    night:     { top: [  2,   3,   8], middle: [  5,   6,  15], bottom: [ 10,  12,  25] },
+    focus: '#191970', focusLight: '#4169E1',
+    short: '#4B0082', shortLight: '#8A2BE2',
+    long: '#2F4F4F', longLight: '#708090'
   }
 };
 
@@ -126,8 +191,10 @@ function saveToStorage() {
       soundSettings,
       themeSettings: { currentTheme, isDarkMode, highContrast },
       weatherEffect,
+      weatherCycleIndex,
       options,
-      tasks
+      tasks,
+      taskViewState
     };
     localStorage.setItem('pomodoroPrimeData', JSON.stringify(data));
   } catch (e) {
@@ -154,8 +221,10 @@ function loadFromStorage() {
         highContrast = data.themeSettings.highContrast || false;
       }
       if (data.weatherEffect) weatherEffect = data.weatherEffect;
+      if (data.weatherCycleIndex !== undefined) weatherCycleIndex = data.weatherCycleIndex;
       if (data.options) options = { ...options, ...data.options };
       if (data.tasks) tasks = data.tasks;
+      if (data.taskViewState) taskViewState = { ...taskViewState, ...data.taskViewState };
     }
     const hasVisited = localStorage.getItem('pomodoroPrimeVisited');
     if (!hasVisited) showOnboarding();
@@ -174,7 +243,6 @@ function initDOM() {
   startBtn = document.getElementById('startBtn');
   resetBtn = document.getElementById('resetBtn');
   skipBtn = document.getElementById('skipBtn');
-  taskInput = document.getElementById('taskInput');
   modeBtns = document.querySelectorAll('.mode-btn');
   themeToggleBtn = document.getElementById('themeToggle');
   presetBtns = document.querySelectorAll('.preset-btn');
@@ -191,6 +259,11 @@ function initDOM() {
   newTaskInput = document.getElementById('newTaskInput');
   addTaskBtn = document.getElementById('addTaskBtn');
   taskList = document.getElementById('taskList');
+  taskSort = document.getElementById('taskSort');
+  taskFilter = document.getElementById('taskFilter');
+  exportCsvBtn = document.getElementById('exportCsvBtn');
+  importCsvBtn = document.getElementById('importCsvBtn');
+  csvFileInput = document.getElementById('csvFileInput');
   // settingsBtn removed from UI
   shortcutsBtn = document.getElementById('shortcutsBtn');
   optionsToggle = document.getElementById('optionsToggle');
@@ -554,11 +627,18 @@ function onTimerComplete() {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       if (statsState.lastSessionDate === yesterday.toDateString()) {
+        // Consecutive day: increment streak
         statsState.streak++;
       } else {
-        statsState.streak = statsState.lastSessionDate === null ? 1 : 1;
+        // Streak broken or first session: reset to 1
+        statsState.streak = 1;
       }
       statsState.lastSessionDate = today;
+    }
+    // Auto-cycle weather on each completed focus session for variety
+    if (weatherEffect === 'auto') {
+      weatherCycleIndex++;
+      createParticles(); // Recreate particles with new weather
     }
     updateStats();
   } else if (timerState.mode === 'short') {
@@ -701,21 +781,69 @@ function setCustomDuration(minutes) {
 }
 
 // ==================== TASK FUNCTIONS ====================
+
+/**
+ * Get filtered and sorted tasks for display
+ */
+function getDisplayTasks() {
+  let displayTasks = [...tasks];
+  
+  // Apply filter
+  if (taskViewState.filterBy === 'completed') {
+    displayTasks = displayTasks.filter(task => task.completed);
+  } else if (taskViewState.filterBy === 'pending') {
+    displayTasks = displayTasks.filter(task => !task.completed);
+  }
+  
+  // Apply sort
+  if (taskViewState.sortBy === 'status') {
+    // Sort by status: pending first, then completed
+    displayTasks.sort((a, b) => {
+      if (a.completed === b.completed) {
+        // If same status, sort by creation date (newest first)
+        return b.createdAt - a.createdAt;
+      }
+      return a.completed ? 1 : -1;
+    });
+  }
+  // 'original' sort keeps the array order as-is
+  
+  return displayTasks;
+}
+
+/**
+ * Get the original index of a task in the main tasks array
+ */
+function getOriginalIndex(displayTask) {
+  return tasks.findIndex(t =>
+    t.text === displayTask.text &&
+    t.completed === displayTask.completed &&
+    t.createdAt === displayTask.createdAt
+  );
+}
+
 function renderTasks() {
   taskList.innerHTML = '';
 
-  if (tasks.length === 0) {
+  const displayTasks = getDisplayTasks();
+
+  if (displayTasks.length === 0) {
     const empty = document.createElement('li');
     empty.className = 'task-empty';
-    empty.textContent = 'No tasks yet — add one above';
+    if (tasks.length === 0) {
+      empty.textContent = 'No tasks yet — add one above';
+    } else {
+      empty.textContent = 'No tasks match the current filter';
+    }
     taskList.appendChild(empty);
     return;
   }
 
-  tasks.forEach((task, index) => {
+  displayTasks.forEach((task) => {
+    const originalIndex = getOriginalIndex(task);
     const li = document.createElement('li');
     li.className = 'task-item';
-    li.dataset.index = index;
+    li.dataset.index = originalIndex;
     li.innerHTML = `
       <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} aria-label="Mark task complete">
       <span class="task-text ${task.completed ? 'completed' : ''}">${escapeHtml(task.text)}</span>
@@ -763,6 +891,186 @@ function toggleTaskComplete(index) {
 
 function deleteTask(index) {
   tasks.splice(index, 1);
+  renderTasks();
+  saveToStorage();
+}
+
+// ==================== CSV EXPORT/IMPORT ====================
+
+/**
+ * Export tasks to CSV file
+ */
+function exportTasksToCSV() {
+  if (tasks.length === 0) {
+    alert('No tasks to export.');
+    return;
+  }
+
+  // CSV header
+  let csvContent = 'Task,Status,CreatedAt\n';
+
+  // Add each task as a row
+  tasks.forEach(task => {
+    // Escape task text to handle commas and quotes
+    const escapedText = task.text.replace(/"/g, '""');
+    const status = task.completed ? 'completed' : 'pending';
+    const createdAt = new Date(task.createdAt).toISOString();
+    csvContent += `"${escapedText}",${status},${createdAt}\n`;
+  });
+
+  // Create blob and download
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  link.setAttribute('href', url);
+  link.setAttribute('download', `pomodoro-tasks-${date}.csv`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Import tasks from CSV file
+ */
+function importTasksFromCSV(file) {
+  if (!file) return;
+
+  // Validate file type
+  if (!file.name.endsWith('.csv')) {
+    alert('Please select a valid CSV file.');
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+    try {
+      const csvText = e.target.result;
+      const lines = csvText.trim().split('\n');
+
+      // Validate file has content
+      if (lines.length < 2) {
+        alert('CSV file is empty or has no data rows.');
+        return;
+      }
+
+      // Validate header
+      const header = lines[0].toLowerCase();
+      if (!header.includes('task') || !header.includes('status')) {
+        alert('Invalid CSV format. Expected headers: Task, Status, CreatedAt');
+        return;
+      }
+
+      const importedTasks = [];
+      const duplicateTasks = [];
+
+      // Parse each row (skip header)
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        // Parse CSV with quoted fields
+        const matches = line.match(/("([^"]|"")*"|[^,]*),([^,]*),(.*)/);
+        if (!matches) {
+          console.warn(`Skipping malformed row ${i + 1}: ${line}`);
+          continue;
+        }
+
+        let taskText = matches[1];
+        const status = matches[2].trim().toLowerCase();
+        const createdAt = matches[3].trim();
+
+        // Remove quotes and unescape double quotes
+        if (taskText.startsWith('"') && taskText.endsWith('"')) {
+          taskText = taskText.slice(1, -1).replace(/""/g, '"');
+        }
+
+        // Validate task text
+        if (!taskText || taskText === '""') {
+          console.warn(`Skipping empty task text in row ${i + 1}`);
+          continue;
+        }
+
+        // Parse completion status
+        const isCompleted = status === 'completed' || status === 'done' || status === 'true' || status === '1';
+
+        // Parse creation date or use current time
+        let timestamp = Date.now();
+        if (createdAt && createdAt !== '') {
+          const parsedDate = new Date(createdAt);
+          if (!isNaN(parsedDate.getTime())) {
+            timestamp = parsedDate.getTime();
+          }
+        }
+
+        // Check for duplicates
+        const isDuplicate = tasks.some(t =>
+          t.text === taskText &&
+          t.createdAt === timestamp
+        );
+
+        if (isDuplicate) {
+          duplicateTasks.push(taskText);
+        } else {
+          importedTasks.push({
+            text: taskText,
+            completed: isCompleted,
+            createdAt: timestamp
+          });
+        }
+      }
+
+      if (importedTasks.length === 0) {
+        alert('No valid tasks found in CSV file.');
+        return;
+      }
+
+      // Show summary
+      let message = `Successfully imported ${importedTasks.length} task(s).`;
+      if (duplicateTasks.length > 0) {
+        message += `\n\nSkipped ${duplicateTasks.length} duplicate task(s):\n${duplicateTasks.slice(0, 5).join(', ')}${duplicateTasks.length > 5 ? '...' : ''}`;
+      }
+      alert(message);
+
+      // Add imported tasks to the list
+      tasks = [...tasks, ...importedTasks];
+      renderTasks();
+      saveToStorage();
+
+    } catch (error) {
+      console.error('Error parsing CSV:', error);
+      alert('Error parsing CSV file. Please check the file format and try again.');
+    }
+  };
+
+  reader.onerror = function() {
+    alert('Error reading file. Please try again.');
+  };
+
+  reader.readAsText(file);
+}
+
+// ==================== SORTING/FILTERING ====================
+
+/**
+ * Update task sorting
+ */
+function setTaskSort(sortBy) {
+  taskViewState.sortBy = sortBy;
+  taskSort.value = sortBy;
+  renderTasks();
+  saveToStorage();
+}
+
+/**
+ * Update task filtering
+ */
+function setTaskFilter(filterBy) {
+  taskViewState.filterBy = filterBy;
+  taskFilter.value = filterBy;
   renderTasks();
   saveToStorage();
 }
@@ -1057,7 +1365,11 @@ function resizeParticlesCanvas() {
 }
 
 function getActiveWeather() {
-  if (weatherEffect === 'auto') return 'clear';
+  if (weatherEffect === 'auto') {
+    // Cycle through weather types: clear, rain, snow, thunderstorm, cloudy, fog, sunny
+    const weatherTypes = ['clear', 'rain', 'snow', 'thunderstorm', 'cloudy', 'fog', 'sunny'];
+    return weatherTypes[weatherCycleIndex % weatherTypes.length];
+  }
   return weatherEffect;
 }
 
@@ -1098,6 +1410,93 @@ function createParticles() {
           wobble: Math.random() * Math.PI * 2
         });
       }
+      break;
+    }
+    case 'thunderstorm': {
+      // Rain particles for thunderstorm
+      const rainCount = Math.min(120, Math.floor(w * h / 8000));
+      for (let i = 0; i < rainCount; i++) {
+        particles.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          size: Math.random() * 1.5 + 0.5,
+          speedX: 0.5 + Math.random() * 0.7,
+          speedY: 7 + Math.random() * 6,
+          opacity: Math.random() * 0.5 + 0.3,
+          type: 'rain',
+          length: Math.random() * 12 + 10
+        });
+      }
+      // Add lightning flash state (not a particle, but tracked here)
+      particles.push({
+        type: 'lightning',
+        flashOpacity: 0,
+        flashTimer: 0,
+        nextFlash: Math.random() * 300 + 200
+      });
+      break;
+    }
+    case 'cloudy': {
+      const count = Math.min(8, Math.floor(w * h / 80000));
+      for (let i = 0; i < count; i++) {
+        const cloudWidth = Math.random() * 150 + 100;
+        const cloudHeight = cloudWidth * 0.5;
+        particles.push({
+          x: Math.random() * w,
+          y: Math.random() * h * 0.4 + 20,
+          width: cloudWidth,
+          height: cloudHeight,
+          speedX: 0.2 + Math.random() * 0.3,
+          opacity: Math.random() * 0.3 + 0.5,
+          type: 'cloud',
+          circles: Array.from({ length: 5 }, () => ({
+            offsetX: (Math.random() - 0.5) * cloudWidth * 0.8,
+            offsetY: (Math.random() - 0.5) * cloudHeight * 0.5,
+            radius: cloudHeight * (0.4 + Math.random() * 0.3)
+          }))
+        });
+      }
+      break;
+    }
+    case 'fog': {
+      const count = Math.min(40, Math.floor(w * h / 20000));
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          size: Math.random() * 80 + 60,
+          speedX: (Math.random() - 0.5) * 0.15,
+          speedY: (Math.random() - 0.5) * 0.1,
+          opacity: Math.random() * 0.15 + 0.05,
+          type: 'fog',
+          wobble: Math.random() * Math.PI * 2
+        });
+      }
+      break;
+    }
+    case 'sunny': {
+      const count = Math.min(5, Math.floor(w * h / 150000));
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          size: Math.random() * 2 + 1,
+          speedX: (Math.random() - 0.5) * 0.2,
+          speedY: (Math.random() - 0.5) * 0.2,
+          opacity: Math.random() * 0.5 + 0.3,
+          type: 'sunray',
+          angle: Math.random() * Math.PI * 2,
+          length: Math.random() * 100 + 50
+        });
+      }
+      // Add central sun glow
+      particles.push({
+        type: 'sunGlow',
+        x: w * 0.15,
+        y: h * 0.2,
+        size: 80,
+        pulsePhase: 0
+      });
       break;
     }
     default: { // clear / auto
@@ -1160,6 +1559,121 @@ function animateParticles() {
         particlesCtx.beginPath();
         particlesCtx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         particlesCtx.fill();
+        break;
+
+      case 'lightning':
+        // Handle lightning flash effect
+        particle.nextFlash--;
+        if (particle.nextFlash <= 0) {
+          particle.flashOpacity = 0.8;
+          particle.flashTimer = 5;
+          particle.nextFlash = Math.random() * 400 + 200;
+        }
+        if (particle.flashTimer > 0) {
+          particle.flashTimer--;
+          particle.flashOpacity *= 0.85;
+          // Draw flash overlay
+          particlesCtx.fillStyle = `rgba(255, 255, 255, ${particle.flashOpacity})`;
+          particlesCtx.fillRect(0, 0, w, h);
+        }
+        break;
+
+      case 'cloud':
+        // Move cloud slowly
+        particle.x += particle.speedX;
+        if (particle.x > w + particle.width) {
+          particle.x = -particle.width;
+          particle.y = Math.random() * h * 0.4 + 20;
+        }
+
+        // Draw cloud as multiple overlapping circles
+        particlesCtx.globalAlpha = particle.opacity;
+        particlesCtx.fillStyle = isDarkMode ? 'rgba(180, 190, 200, 0.7)' : 'rgba(255, 255, 255, 0.85)';
+        particle.circles.forEach(circle => {
+          particlesCtx.beginPath();
+          particlesCtx.arc(
+            particle.x + circle.offsetX,
+            particle.y + circle.offsetY,
+            circle.radius,
+            0, Math.PI * 2
+          );
+          particlesCtx.fill();
+        });
+        particlesCtx.globalAlpha = 1;
+        break;
+
+      case 'fog':
+        // Move fog slowly with wobble
+        particle.wobble += 0.005;
+        particle.x += particle.speedX + Math.sin(particle.wobble) * 0.05;
+        particle.y += particle.speedY;
+
+        // Wrap around
+        if (particle.x < -particle.size) particle.x = w + particle.size;
+        if (particle.x > w + particle.size) particle.x = -particle.size;
+        if (particle.y < -particle.size) particle.y = h + particle.size;
+        if (particle.y > h + particle.size) particle.y = -particle.size;
+
+        // Draw fog as soft gradient circle
+        particlesCtx.globalAlpha = particle.opacity;
+        const fogGradient = particlesCtx.createRadialGradient(
+          particle.x, particle.y, 0,
+          particle.x, particle.y, particle.size
+        );
+        fogGradient.addColorStop(0, isDarkMode ? 'rgba(150, 160, 170, 0.3)' : 'rgba(220, 230, 240, 0.4)');
+        fogGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        particlesCtx.fillStyle = fogGradient;
+        particlesCtx.beginPath();
+        particlesCtx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        particlesCtx.fill();
+        particlesCtx.globalAlpha = 1;
+        break;
+
+      case 'sunray':
+        // Move sunray particle slowly
+        particle.x += particle.speedX;
+        particle.y += particle.speedY;
+        particle.angle += 0.005;
+
+        // Wrap around
+        if (particle.x < -10) particle.x = w + 10;
+        if (particle.x > w + 10) particle.x = -10;
+        if (particle.y < -10) particle.y = h + 10;
+        if (particle.y > h + 10) particle.y = -10;
+
+        // Draw sunray as a glowing line
+        particlesCtx.globalAlpha = particle.opacity * 0.3;
+        particlesCtx.strokeStyle = 'rgba(255, 220, 100, 0.6)';
+        particlesCtx.lineWidth = particle.size;
+        particlesCtx.beginPath();
+        const rayEndX = particle.x + Math.cos(particle.angle) * particle.length;
+        const rayEndY = particle.y + Math.sin(particle.angle) * particle.length;
+        particlesCtx.moveTo(particle.x, particle.y);
+        particlesCtx.lineTo(rayEndX, rayEndY);
+        particlesCtx.stroke();
+        particlesCtx.globalAlpha = 1;
+        break;
+
+      case 'sunGlow':
+        // Pulsing sun glow effect
+        particle.pulsePhase += 0.02;
+        const pulse = 1 + Math.sin(particle.pulsePhase) * 0.1;
+
+        // Draw sun glow
+        particlesCtx.globalAlpha = 0.2;
+        const sunGradient = particlesCtx.createRadialGradient(
+          particle.x, particle.y, 0,
+          particle.x, particle.y, particle.size * pulse
+        );
+        sunGradient.addColorStop(0, 'rgba(255, 240, 180, 0.8)');
+        sunGradient.addColorStop(0.3, 'rgba(255, 220, 120, 0.4)');
+        sunGradient.addColorStop(0.7, 'rgba(255, 200, 80, 0.15)');
+        sunGradient.addColorStop(1, 'rgba(255, 180, 60, 0)');
+        particlesCtx.fillStyle = sunGradient;
+        particlesCtx.beginPath();
+        particlesCtx.arc(particle.x, particle.y, particle.size * pulse, 0, Math.PI * 2);
+        particlesCtx.fill();
+        particlesCtx.globalAlpha = 1;
         break;
 
       case 'firefly':
@@ -1258,6 +1772,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const minutes = timerState.totalTime / 60000;
     btn.setAttribute('aria-pressed', (parseInt(btn.dataset.minutes) === minutes).toString());
   });
+
+  // Restore task view state (sort/filter)
+  if (taskSort) taskSort.value = taskViewState.sortBy;
+  if (taskFilter) taskFilter.value = taskViewState.filterBy;
 
   updateThemeColors();
   initTimerStars();
@@ -1373,6 +1891,30 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') {
       e.preventDefault();
       addTask();
+    }
+  });
+
+  // Task sorting
+  taskSort.addEventListener('change', (e) => {
+    setTaskSort(e.target.value);
+  });
+
+  // Task filtering
+  taskFilter.addEventListener('change', (e) => {
+    setTaskFilter(e.target.value);
+  });
+
+  // CSV export
+  exportCsvBtn.addEventListener('click', exportTasksToCSV);
+
+  // CSV import
+  importCsvBtn.addEventListener('click', () => {
+    csvFileInput.click();
+  });
+  csvFileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      importTasksFromCSV(e.target.files[0]);
+      e.target.value = ''; // Reset file input
     }
   });
 
