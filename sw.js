@@ -69,3 +69,20 @@ self.addEventListener('fetch', event => {
     );
   }
 });
+
+// Bring the app to foreground when user taps a notification.
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      for (const client of clientList) {
+        if ('focus' in client) return client.focus();
+      }
+      if (clients.openWindow) {
+        const targetUrl = (event.notification.data && event.notification.data.url) || './';
+        return clients.openWindow(targetUrl);
+      }
+      return undefined;
+    })
+  );
+});

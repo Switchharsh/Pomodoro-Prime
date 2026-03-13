@@ -501,6 +501,17 @@ function ensureAudioContext() {
   }
 }
 
+function primeAudioAndNotifications() {
+  try {
+    ensureAudioContext();
+  } catch (e) {
+    console.log('Audio priming error:', e);
+  }
+
+  // Notification permission requests are more reliable on mobile when triggered by a user gesture.
+  requestNotificationPermission();
+}
+
 function playAlarm() {
   try {
     ensureAudioContext();
@@ -687,21 +698,37 @@ function playWood(volume) {
 
 // ==================== NOTIFICATIONS ====================
 function requestNotificationPermission() {
+  if (!window.isSecureContext) return;
   if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
+    Notification.requestPermission().catch(() => {});
   }
 }
 
 function showBrowserNotification(title, body) {
-  if ('Notification' in window && Notification.permission === 'granted') {
-    const notification = new Notification(title, {
-      body: body,
-      icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🌲</text></svg>',
-      tag: 'pomodoro-timer',
-      requireInteraction: false
-    });
-    setTimeout(() => notification.close(), 5000);
+  if (!window.isSecureContext) return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const options = {
+    body: body,
+    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🌲</text></svg>',
+    tag: 'pomodoro-timer',
+    requireInteraction: false,
+    data: { url: './' }
+  };
+
+  // On Android, SW notifications are generally more reliable than window Notification().
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready
+      .then(reg => reg.showNotification(title, options))
+      .catch(() => {
+        const notification = new Notification(title, options);
+        setTimeout(() => notification.close(), 5000);
+      });
+    return;
   }
+
+  const notification = new Notification(title, options);
+  setTimeout(() => notification.close(), 5000);
 }
 
 // ==================== TIMER FUNCTIONS ====================
@@ -1783,6 +1810,12 @@ document.addEventListener('DOMContentLoaded', () => {
   updateStats();
   updateTimerType();
   updateModeButtons();
+
+  // Mobile browsers often block audio until explicit user interaction.
+  const unlockAudioOnce = () => primeAudioAndNotifications();
+  window.addEventListener('pointerdown', unlockAudioOnce, { once: true, passive: true });
+  window.addEventListener('touchstart', unlockAudioOnce, { once: true, passive: true });
+  window.addEventListener('keydown', unlockAudioOnce, { once: true });
 
   // Timer Controls
   startBtn.addEventListener('click', () => {
