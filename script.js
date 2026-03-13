@@ -29,11 +29,11 @@ let currentTheme = 'forest';
 let isDarkMode = false;
 let highContrast = false;
 let weatherEffect = 'auto';
-// Weather cycling: tracks index for auto weather rotation (rain, snow, blossom, meteor)
+// Weather cycling: tracks index for auto weather rotation sequence.
 let weatherCycleIndex = 0;
 
-const ALLOWED_WEATHER_MODES = ['auto', 'rain', 'snow', 'blossom', 'meteor'];
-const AUTO_WEATHER_SEQUENCE = ['rain', 'snow', 'blossom', 'meteor'];
+const ALLOWED_WEATHER_MODES = ['auto', 'rain', 'snow', 'blossom', 'meteor', 'mist', 'breeze', 'fireflies'];
+const AUTO_WEATHER_SEQUENCE = ['rain', 'snow', 'blossom', 'meteor', 'breeze'];
 const ALLOWED_SOUND_TYPES = ['chime', 'bell', 'digital', 'gentle', 'harp', 'pulse', 'retro', 'wood'];
 
 // OPTIMIZATION: Debounce timeout for localStorage saves
@@ -400,18 +400,22 @@ function updateCelestialBody(progress) {
   celestialCircle.setAttribute('r', size.toFixed(1));
 
   // Reduce outer glow radius for cleaner ring visuals.
-  celestialGlowEffect.setAttribute('r', (size * 2).toFixed(1));
+  celestialGlowEffect.setAttribute('r', (size * (isSun ? 2.7 : 2)).toFixed(1));
 
   if (isSun) {
-    celestialCircle.setAttribute('fill', '#FFD700');
-    celestialGlowEffect.setAttribute('opacity', (0.7 * Math.sin(t * Math.PI)).toFixed(2));
+    celestialCircle.setAttribute('fill', '#FFF34D');
+    celestialCircle.setAttribute('stroke', '#C77900');
+    celestialCircle.setAttribute('stroke-width', '0.9');
+    celestialGlowEffect.setAttribute('opacity', (0.95 * Math.sin(t * Math.PI)).toFixed(2));
     const glowStops = document.getElementById('celestialGlow');
     if (glowStops) {
-      glowStops.querySelector('stop:first-child').setAttribute('style', 'stop-color:#FFD700;stop-opacity:0.8');
-      glowStops.querySelector('stop:last-child').setAttribute('style', 'stop-color:#FFD700;stop-opacity:0');
+      glowStops.querySelector('stop:first-child').setAttribute('style', 'stop-color:#FFF34D;stop-opacity:1');
+      glowStops.querySelector('stop:last-child').setAttribute('style', 'stop-color:#FFB800;stop-opacity:0');
     }
   } else {
     celestialCircle.setAttribute('fill', '#E0E8F0');
+    celestialCircle.setAttribute('stroke', '#9EB2C8');
+    celestialCircle.setAttribute('stroke-width', '0.5');
     celestialGlowEffect.setAttribute('opacity', (0.45 * Math.sin(t * Math.PI)).toFixed(2));
     const glowStops = document.getElementById('celestialGlow');
     if (glowStops) {
@@ -1724,6 +1728,53 @@ function createParticles() {
       const count = 5;
       for (let i = 0; i < count; i++) {
         particles.push(createMeteorParticle(w, h));
+      }
+      break;
+    }
+    case 'mist': {
+      const count = scaledParticleCount(Math.min(26, Math.floor(w * h / 45000)));
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          size: Math.random() * 85 + 45,
+          speedX: (Math.random() - 0.5) * 0.16,
+          speedY: (Math.random() - 0.5) * 0.03,
+          opacity: Math.random() * 0.25 + 0.12,
+          type: 'fog',
+          wobble: Math.random() * Math.PI * 2
+        });
+      }
+      break;
+    }
+    case 'breeze': {
+      const count = scaledParticleCount(Math.min(36, Math.floor(w * h / 32000)));
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          size: Math.random() * 0.9 + 0.4,
+          speedX: 1.2 + Math.random() * 1.6,
+          speedY: (Math.random() - 0.5) * 0.35,
+          opacity: Math.random() * 0.2 + 0.12,
+          type: 'wind',
+          length: Math.random() * 26 + 14
+        });
+      }
+      break;
+    }
+    case 'fireflies': {
+      const count = scaledParticleCount(Math.min(24, Math.floor(w * h / 52000)));
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          size: Math.random() * 1.6 + 1.1,
+          speedX: (Math.random() - 0.5) * 0.35,
+          speedY: (Math.random() - 0.5) * 0.28,
+          opacity: Math.random() * 0.35 + 0.2,
+          type: 'firefly'
+        });
       }
       break;
     }

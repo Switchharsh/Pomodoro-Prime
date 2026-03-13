@@ -416,6 +416,7 @@ body.dark-mode .timer-stat-value {
 /* Celestial Body Animation */
 .celestial-body {
   transition: none;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.35));
 }
 #celestialCircle {
   transition: fill 0.8s ease;
