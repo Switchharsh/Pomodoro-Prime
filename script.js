@@ -1066,8 +1066,8 @@ function importTasksFromCSV(file) {
         }
 
         let taskText = matches[1];
-        const status = matches[2].trim().toLowerCase();
-        const createdAt = matches[3].trim();
+        const status = matches[3].trim().toLowerCase();
+        const createdAt = matches[4].trim();
 
         if (taskText.startsWith('"') && taskText.endsWith('"')) {
           taskText = taskText.slice(1, -1).replace(/""/g, '"');
