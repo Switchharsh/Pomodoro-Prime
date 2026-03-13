@@ -245,6 +245,10 @@
             <button class="sound-type-btn" data-sound="bell" aria-pressed="false">🔕 Bell</button>
             <button class="sound-type-btn" data-sound="digital" aria-pressed="false">📱 Digital</button>
             <button class="sound-type-btn" data-sound="gentle" aria-pressed="false">🎵 Gentle</button>
+            <button class="sound-type-btn" data-sound="harp" aria-pressed="false">🎼 Harp</button>
+            <button class="sound-type-btn" data-sound="pulse" aria-pressed="false">🫧 Pulse</button>
+            <button class="sound-type-btn" data-sound="retro" aria-pressed="false">🕹️ Retro</button>
+            <button class="sound-type-btn" data-sound="wood" aria-pressed="false">🥁 Wood</button>
           </div>
         </div>
         <div class="sound-option">
@@ -303,11 +307,10 @@
         <label class="sound-label">Weather Effect</label>
         <div class="weather-buttons">
           <button class="weather-btn active" data-weather="auto" aria-pressed="true">🌤️ Auto</button>
-          <button class="weather-btn" data-weather="clear" aria-pressed="false">☀️ Clear</button>
           <button class="weather-btn" data-weather="rain" aria-pressed="false">🌧️ Rain</button>
           <button class="weather-btn" data-weather="snow" aria-pressed="false">❄️ Snow</button>
-          <button class="weather-btn" data-weather="thunderstorm" aria-pressed="false">⛈️ Thunder</button>
-          <button class="weather-btn" data-weather="fog" aria-pressed="false">🌫️ Fog</button>
+          <button class="weather-btn" data-weather="blossom" aria-pressed="false">🌸 Blossom</button>
+          <button class="weather-btn" data-weather="meteor" aria-pressed="false">☄️ Meteor</button>
         </div>
       </div>
       <div class="high-contrast-option">
@@ -318,13 +321,10 @@
       </div>
     </section>
 
-    <!-- Advanced Options (Collapsible) -->
+    <!-- Advanced Options -->
     <section class="options-section">
-      <button class="options-toggle" id="optionsToggle" aria-expanded="false" aria-controls="optionsList">
-        <span>⚙️ Advanced Options</span>
-        <span class="toggle-icon" aria-hidden="true">▼</span>
-      </button>
-      <div class="options-list" id="optionsList" hidden>
+      <h2 class="section-title">⚙️ Advanced Options</h2>
+      <div class="options-list" id="optionsList">
         <label class="toggle-label">
           <input type="checkbox" id="autoStartToggle">
           <span>Auto-start next timer</span>
@@ -336,6 +336,10 @@
         <label class="toggle-label">
           <input type="checkbox" id="focusModeToggle">
           <span>Focus Mode (hide non-essentials)</span>
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="lowPowerToggle">
+          <span>Low Power Mode (30 FPS + fewer particles)</span>
         </label>
       </div>
     </section>

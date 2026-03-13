@@ -1,4 +1,4 @@
-// Pomodoro Prime - Enhanced JavaScript
+// Pomodoro Prime - Enhanced JavaScript (Optimized)
 // Features: Celestial animation, weather effects, multiple sounds, focus mode
 // ADHD-friendly: Simple, focused, minimal distractions
 
@@ -29,8 +29,12 @@ let currentTheme = 'forest';
 let isDarkMode = false;
 let highContrast = false;
 let weatherEffect = 'auto';
-// Weather cycling: tracks index for auto weather rotation (0=clear, 1=rain, 2=snow)
+// Weather cycling: tracks index for auto weather rotation (rain, snow, blossom, meteor)
 let weatherCycleIndex = 0;
+
+const ALLOWED_WEATHER_MODES = ['auto', 'rain', 'snow', 'blossom', 'meteor'];
+const AUTO_WEATHER_SEQUENCE = ['rain', 'snow', 'blossom', 'meteor'];
+const ALLOWED_SOUND_TYPES = ['chime', 'bell', 'digital', 'gentle', 'harp', 'pulse', 'retro', 'wood'];
 
 // OPTIMIZATION: Debounce timeout for localStorage saves
 let saveTimeout = null;
@@ -38,7 +42,8 @@ let saveTimeout = null;
 let options = {
   autoStart: false,
   skipBreaks: false,
-  focusMode: false
+  focusMode: false,
+  lowPowerMode: false
 };
 
 let tasks = [];
@@ -64,10 +69,10 @@ let customMinutes, customDurationBtn;
 let newTaskInput, addTaskBtn, taskList;
 let taskSort, taskFilter;
 let exportCsvBtn, importCsvBtn, csvFileInput;
-let shortcutsBtn, optionsToggle, optionsList;
+let shortcutsBtn;
 let onboardingModal, closeOnboarding, startJourneyBtn;
 let shortcutsModal, closeShortcuts;
-let highContrastToggle, themeOptions, focusModeToggle, volumeValue;
+let highContrastToggle, themeOptions, focusModeToggle, lowPowerToggle, volumeValue;
 let focusExitBtn;
 let soundTypeBtns, weatherBtns;
 let audioContext;
@@ -76,6 +81,9 @@ let skyCanvas, skyCtx, stars = [];
 let celestialBody, celestialCircle, celestialGlowEffect, timerSkyGradient;
 // OPTIMIZATION: Single animation loop ID instead of two separate loops
 let animationFrameId = null;
+let lastRenderTime = 0;
+let targetAnimationFps = 40;
+let animationFrameInterval = 1000 / targetAnimationFps;
 // OPTIMIZATION: Cached timer stars DOM element
 let timerStarsElement = null;
 let timerStarsInitialized = false;
@@ -188,10 +196,7 @@ const THEME_COLORS = {
 // ==================== LOCAL STORAGE ====================
 // OPTIMIZATION: Debounced save to reduce localStorage I/O operations
 function saveToStorage() {
-  // Clear any pending save
   if (saveTimeout) clearTimeout(saveTimeout);
-  
-  // Debounce: only save after 500ms of no changes
   saveTimeout = setTimeout(() => {
     try {
       const data = {
@@ -242,11 +247,21 @@ function loadFromStorage() {
       if (data.taskViewState) taskViewState = { ...taskViewState, ...data.taskViewState };
     }
     const hasVisited = localStorage.getItem('pomodoroPrimeVisited');
+    if (!ALLOWED_SOUND_TYPES.includes(soundSettings.soundType)) {
+      soundSettings.soundType = 'chime';
+    }
+    if (!ALLOWED_WEATHER_MODES.includes(weatherEffect)) {
+      weatherEffect = 'auto';
+    }
     if (!hasVisited) showOnboarding();
   } catch (e) {
     console.warn('Pomodoro Prime: could not load from localStorage:', e);
     showOnboarding();
   }
+}
+
+function isAllowedWeatherMode(mode) {
+  return ALLOWED_WEATHER_MODES.includes(mode);
 }
 
 // ==================== INITIALIZATION ====================
@@ -279,10 +294,7 @@ function initDOM() {
   exportCsvBtn = document.getElementById('exportCsvBtn');
   importCsvBtn = document.getElementById('importCsvBtn');
   csvFileInput = document.getElementById('csvFileInput');
-  // settingsBtn removed from UI
   shortcutsBtn = document.getElementById('shortcutsBtn');
-  optionsToggle = document.getElementById('optionsToggle');
-  optionsList = document.getElementById('optionsList');
   onboardingModal = document.getElementById('onboardingModal');
   closeOnboarding = document.getElementById('closeOnboarding');
   startJourneyBtn = document.getElementById('startJourneyBtn');
@@ -290,6 +302,7 @@ function initDOM() {
   closeShortcuts = document.getElementById('closeShortcuts');
   highContrastToggle = document.getElementById('highContrastToggle');
   focusModeToggle = document.getElementById('focusModeToggle');
+  lowPowerToggle = document.getElementById('lowPowerToggle');
   themeOptions = document.querySelectorAll('.theme-option');
   volumeValue = document.getElementById('volumeValue');
   focusExitBtn = document.getElementById('focusExitBtn');
@@ -382,17 +395,16 @@ function updateCelestialBody(progress) {
   celestialGlowEffect.setAttribute('cx', x.toFixed(1));
   celestialGlowEffect.setAttribute('cy', y.toFixed(1));
 
-  // Size: bigger at peak of arc
-  const size = 5 + Math.sin(t * Math.PI) * 3;
+  // Increase timer sun/moon inner circle size for better visibility.
+  const size = 0.8 + Math.sin(t * Math.PI) * 2.4;
   celestialCircle.setAttribute('r', size.toFixed(1));
 
-  // Glow size
-  celestialGlowEffect.setAttribute('r', (size * 3).toFixed(1));
+  // Reduce outer glow radius for cleaner ring visuals.
+  celestialGlowEffect.setAttribute('r', (size * 2).toFixed(1));
 
   if (isSun) {
     celestialCircle.setAttribute('fill', '#FFD700');
-    celestialGlowEffect.setAttribute('opacity', (0.5 * Math.sin(t * Math.PI)).toFixed(2));
-    // Update glow gradient color to sun
+    celestialGlowEffect.setAttribute('opacity', (0.7 * Math.sin(t * Math.PI)).toFixed(2));
     const glowStops = document.getElementById('celestialGlow');
     if (glowStops) {
       glowStops.querySelector('stop:first-child').setAttribute('style', 'stop-color:#FFD700;stop-opacity:0.8');
@@ -400,7 +412,7 @@ function updateCelestialBody(progress) {
     }
   } else {
     celestialCircle.setAttribute('fill', '#E0E8F0');
-    celestialGlowEffect.setAttribute('opacity', (0.3 * Math.sin(t * Math.PI)).toFixed(2));
+    celestialGlowEffect.setAttribute('opacity', (0.45 * Math.sin(t * Math.PI)).toFixed(2));
     const glowStops = document.getElementById('celestialGlow');
     if (glowStops) {
       glowStops.querySelector('stop:first-child').setAttribute('style', 'stop-color:#C0D0E8;stop-opacity:0.6');
@@ -408,7 +420,6 @@ function updateCelestialBody(progress) {
     }
   }
 
-  // OPTIMIZATION: Use cached DOM element instead of repeated queries
   if (!timerStarsElement) {
     timerStarsElement = document.getElementById('timerStars');
   }
@@ -495,6 +506,10 @@ function playAlarm() {
     ensureAudioContext();
     const vol = soundSettings.volume;
     switch (soundSettings.soundType) {
+      case 'harp':    playHarp(vol); break;
+      case 'pulse':   playPulse(vol); break;
+      case 'retro':   playRetro(vol); break;
+      case 'wood':    playWood(vol); break;
       case 'bell':    playBell(vol); break;
       case 'digital': playDigital(vol); break;
       case 'gentle':  playGentle(vol); break;
@@ -507,7 +522,6 @@ function playAlarm() {
 
 function playChime(volume) {
   const t = audioContext.currentTime;
-  // First note
   const osc1 = audioContext.createOscillator();
   const gain1 = audioContext.createGain();
   osc1.connect(gain1);
@@ -521,7 +535,6 @@ function playChime(volume) {
   osc1.start(t);
   osc1.stop(t + 0.5);
 
-  // Second note (delayed)
   const osc2 = audioContext.createOscillator();
   const gain2 = audioContext.createGain();
   osc2.connect(gain2);
@@ -538,7 +551,6 @@ function playChime(volume) {
 
 function playBell(volume) {
   const t = audioContext.currentTime;
-  // Deep bell chord with harmonics
   const freqs = [261.63, 329.63, 392.00];
   freqs.forEach((freq, i) => {
     const osc = audioContext.createOscillator();
@@ -557,7 +569,6 @@ function playBell(volume) {
 
 function playDigital(volume) {
   const t = audioContext.currentTime;
-  // Three short beeps
   [0, 0.15, 0.3].forEach(offset => {
     const osc = audioContext.createOscillator();
     const gain = audioContext.createGain();
@@ -576,7 +587,6 @@ function playDigital(volume) {
 
 function playGentle(volume) {
   const t = audioContext.currentTime;
-  // Soft rising dual-tone
   const osc1 = audioContext.createOscillator();
   const gain1 = audioContext.createGain();
   osc1.connect(gain1);
@@ -603,6 +613,76 @@ function playGentle(volume) {
   gain2.gain.exponentialRampToValueAtTime(0.01, t + 1.5);
   osc2.start(t + 0.2);
   osc2.stop(t + 1.5);
+}
+
+function playHarp(volume) {
+  const t = audioContext.currentTime;
+  [392, 523.25, 659.25].forEach((freq, i) => {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, t + i * 0.08);
+    gain.gain.setValueAtTime(0, t + i * 0.08);
+    gain.gain.linearRampToValueAtTime(0.14 * volume, t + i * 0.08 + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + i * 0.08 + 1.0);
+    osc.start(t + i * 0.08);
+    osc.stop(t + i * 0.08 + 1.0);
+  });
+}
+
+function playPulse(volume) {
+  const t = audioContext.currentTime;
+  [0, 0.16, 0.32, 0.5].forEach((offset, i) => {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(i % 2 === 0 ? 520 : 680, t + offset);
+    gain.gain.setValueAtTime(0, t + offset);
+    gain.gain.linearRampToValueAtTime(0.15 * volume, t + offset + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + offset + 0.18);
+    osc.start(t + offset);
+    osc.stop(t + offset + 0.2);
+  });
+}
+
+function playRetro(volume) {
+  const t = audioContext.currentTime;
+  [660, 880, 740].forEach((freq, i) => {
+    const start = t + i * 0.11;
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(freq, start);
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(0.12 * volume, start + 0.01);
+    gain.gain.linearRampToValueAtTime(0, start + 0.1);
+    osc.start(start);
+    osc.stop(start + 0.11);
+  });
+}
+
+function playWood(volume) {
+  const t = audioContext.currentTime;
+  [0, 0.12].forEach(offset => {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(180, t + offset);
+    osc.frequency.exponentialRampToValueAtTime(90, t + offset + 0.12);
+    gain.gain.setValueAtTime(0, t + offset);
+    gain.gain.linearRampToValueAtTime(0.22 * volume, t + offset + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + offset + 0.14);
+    osc.start(t + offset);
+    osc.stop(t + offset + 0.16);
+  });
 }
 
 // ==================== NOTIFICATIONS ====================
@@ -644,18 +724,15 @@ function onTimerComplete() {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       if (statsState.lastSessionDate === yesterday.toDateString()) {
-        // Consecutive day: increment streak
         statsState.streak++;
       } else {
-        // Streak broken or first session: reset to 1
         statsState.streak = 1;
       }
       statsState.lastSessionDate = today;
     }
-    // Auto-cycle weather on each completed focus session for variety
     if (weatherEffect === 'auto') {
       weatherCycleIndex++;
-      createParticles(); // Recreate particles with new weather
+      createParticles();
     }
     updateStats();
   } else if (timerState.mode === 'short') {
@@ -723,8 +800,6 @@ function startTimer() {
   timerState.startTime = Date.now() - (timerState.totalTime - timerState.remainingTime);
   updateButtons();
 
-  // OPTIMIZATION: Reduced update frequency from 250ms to 500ms (2x/sec)
-  // Still provides smooth visual updates while reducing CPU usage by 50%
   timerState.interval = setInterval(() => {
     const elapsed = Date.now() - timerState.startTime;
     timerState.remainingTime = Math.max(0, timerState.totalTime - elapsed);
@@ -737,7 +812,7 @@ function startTimer() {
       timerState.isRunning = false;
       onTimerComplete();
     }
-  }, 500); // Update 2x/sec - sufficient for smooth progress bar
+  }, 500);
 }
 
 function pauseTimer() {
@@ -800,39 +875,24 @@ function setCustomDuration(minutes) {
 }
 
 // ==================== TASK FUNCTIONS ====================
-
-/**
- * Get filtered and sorted tasks for display
- */
 function getDisplayTasks() {
   let displayTasks = [...tasks];
-  
-  // Apply filter
   if (taskViewState.filterBy === 'completed') {
     displayTasks = displayTasks.filter(task => task.completed);
   } else if (taskViewState.filterBy === 'pending') {
     displayTasks = displayTasks.filter(task => !task.completed);
   }
-  
-  // Apply sort
   if (taskViewState.sortBy === 'status') {
-    // Sort by status: pending first, then completed
     displayTasks.sort((a, b) => {
       if (a.completed === b.completed) {
-        // If same status, sort by creation date (newest first)
         return b.createdAt - a.createdAt;
       }
       return a.completed ? 1 : -1;
     });
   }
-  // 'original' sort keeps the array order as-is
-  
   return displayTasks;
 }
 
-/**
- * Get the original index of a task in the main tasks array
- */
 function getOriginalIndex(displayTask) {
   return tasks.findIndex(t =>
     t.text === displayTask.text &&
@@ -915,33 +975,24 @@ function deleteTask(index) {
 }
 
 // ==================== CSV EXPORT/IMPORT ====================
-
-/**
- * Export tasks to CSV file
- */
 function exportTasksToCSV() {
   if (tasks.length === 0) {
     alert('No tasks to export.');
     return;
   }
 
-  // CSV header
   let csvContent = 'Task,Status,CreatedAt\n';
-
-  // Add each task as a row
   tasks.forEach(task => {
-    // Escape task text to handle commas and quotes
     const escapedText = task.text.replace(/"/g, '""');
     const status = task.completed ? 'completed' : 'pending';
     const createdAt = new Date(task.createdAt).toISOString();
     csvContent += `"${escapedText}",${status},${createdAt}\n`;
   });
 
-  // Create blob and download
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const date = new Date().toISOString().split('T')[0];
   link.setAttribute('href', url);
   link.setAttribute('download', `pomodoro-tasks-${date}.csv`);
   link.style.visibility = 'hidden';
@@ -951,33 +1002,23 @@ function exportTasksToCSV() {
   URL.revokeObjectURL(url);
 }
 
-/**
- * Import tasks from CSV file
- */
 function importTasksFromCSV(file) {
   if (!file) return;
-
-  // Validate file type
   if (!file.name.endsWith('.csv')) {
     alert('Please select a valid CSV file.');
     return;
   }
 
   const reader = new FileReader();
-
   reader.onload = function(e) {
     try {
       const csvText = e.target.result;
-      // Handle both Unix (\n) and Windows (\r\n) line endings
       const lines = csvText.trim().split(/\r?\n/);
-
-      // Validate file has content
       if (lines.length < 2) {
         alert('CSV file is empty or has no data rows.');
         return;
       }
 
-      // Validate header
       const header = lines[0].toLowerCase();
       if (!header.includes('task') || !header.includes('status')) {
         alert('Invalid CSV format. Expected headers: Task, Status, CreatedAt');
@@ -987,12 +1028,10 @@ function importTasksFromCSV(file) {
       const importedTasks = [];
       const duplicateTasks = [];
 
-      // Parse each row (skip header)
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
 
-        // Parse CSV with quoted fields
         const matches = line.match(/("([^"]|"")*"|[^,]*),([^,]*),(.*)/);
         if (!matches) {
           console.warn(`Skipping malformed row ${i + 1}: ${line}`);
@@ -1003,21 +1042,17 @@ function importTasksFromCSV(file) {
         const status = matches[2].trim().toLowerCase();
         const createdAt = matches[3].trim();
 
-        // Remove quotes and unescape double quotes
         if (taskText.startsWith('"') && taskText.endsWith('"')) {
           taskText = taskText.slice(1, -1).replace(/""/g, '"');
         }
 
-        // Validate task text
         if (!taskText || taskText === '""') {
           console.warn(`Skipping empty task text in row ${i + 1}`);
           continue;
         }
 
-        // Parse completion status
         const isCompleted = status === 'completed' || status === 'done' || status === 'true' || status === '1';
 
-        // Parse creation date or use current time
         let timestamp = Date.now();
         if (createdAt && createdAt !== '') {
           const parsedDate = new Date(createdAt);
@@ -1026,7 +1061,6 @@ function importTasksFromCSV(file) {
           }
         }
 
-        // Check for duplicates
         const isDuplicate = tasks.some(t =>
           t.text === taskText &&
           t.createdAt === timestamp
@@ -1048,14 +1082,12 @@ function importTasksFromCSV(file) {
         return;
       }
 
-      // Show summary
       let message = `Successfully imported ${importedTasks.length} task(s).`;
       if (duplicateTasks.length > 0) {
         message += `\n\nSkipped ${duplicateTasks.length} duplicate task(s):\n${duplicateTasks.slice(0, 5).join(', ')}${duplicateTasks.length > 5 ? '...' : ''}`;
       }
       alert(message);
 
-      // Add imported tasks to the list
       tasks = [...tasks, ...importedTasks];
       renderTasks();
       saveToStorage();
@@ -1069,15 +1101,10 @@ function importTasksFromCSV(file) {
   reader.onerror = function() {
     alert('Error reading file. Please try again.');
   };
-
   reader.readAsText(file);
 }
 
 // ==================== SORTING/FILTERING ====================
-
-/**
- * Update task sorting
- */
 function setTaskSort(sortBy) {
   taskViewState.sortBy = sortBy;
   taskSort.value = sortBy;
@@ -1085,9 +1112,6 @@ function setTaskSort(sortBy) {
   saveToStorage();
 }
 
-/**
- * Update task filtering
- */
 function setTaskFilter(filterBy) {
   taskViewState.filterBy = filterBy;
   taskFilter.value = filterBy;
@@ -1126,19 +1150,68 @@ function applyFocusMode() {
   saveToStorage();
 }
 
+function applyLowPowerMode() {
+  targetAnimationFps = options.lowPowerMode ? 24 : 40;
+  animationFrameInterval = 1000 / targetAnimationFps;
+  if (lowPowerToggle) lowPowerToggle.checked = options.lowPowerMode;
+
+  // Apply the new performance profile immediately.
+  createParticles();
+  lastRenderTime = 0;
+  saveToStorage();
+}
+
+function scaledParticleCount(baseCount) {
+  const multiplier = options.lowPowerMode ? 0.6 : 1;
+  return Math.max(12, Math.floor(baseCount * multiplier));
+}
+
+function createMeteorParticle(w, h) {
+  const spawnFromRight = Math.random() > 0.5;
+  const angle = (125 + Math.random() * 30) * (Math.PI / 180); // mostly down-left
+  const speed = 3.5 + Math.random() * 2.5;
+
+  return {
+    x: spawnFromRight ? (w + Math.random() * 160) : (Math.random() * w),
+    y: spawnFromRight ? (Math.random() * h * 0.5) : (-40 - Math.random() * 140),
+    size: Math.random() * 2 + 1.3,
+    speedX: Math.cos(angle) * speed,
+    speedY: Math.sin(angle) * speed,
+    opacity: Math.random() * 0.35 + 0.55,
+    type: 'meteor',
+    length: Math.random() * 45 + 25
+  };
+}
+
+// OPTIMIZATION: Only recreate particles if weather actually changed
 function setWeatherEffect(weather) {
+  if (!isAllowedWeatherMode(weather)) {
+    weather = 'auto';
+  }
+
+  if (weatherEffect === weather) {
+    // Still update button states
+    weatherBtns.forEach(btn => {
+      const isActive = btn.dataset.weather === weather;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', isActive.toString());
+    });
+    return;
+  }
   weatherEffect = weather;
   weatherBtns.forEach(btn => {
     const isActive = btn.dataset.weather === weather;
     btn.classList.toggle('active', isActive);
     btn.setAttribute('aria-pressed', isActive.toString());
   });
-  // Recreate particles for new weather
-  createParticles();
+  createParticles(); // Recreate only when weather changes
   saveToStorage();
 }
 
 function setSoundType(type) {
+  if (!ALLOWED_SOUND_TYPES.includes(type)) {
+    type = 'chime';
+  }
   soundSettings.soundType = type;
   soundTypeBtns.forEach(btn => {
     const isActive = btn.dataset.sound === type;
@@ -1166,33 +1239,32 @@ function hideShortcuts() {
   if (shortcutsModal) shortcutsModal.setAttribute('aria-hidden', 'true');
 }
 
-function toggleOptionsList() {
-  const isExpanded = optionsToggle.getAttribute('aria-expanded') === 'true';
-  optionsToggle.setAttribute('aria-expanded', (!isExpanded).toString());
-  optionsList.hidden = isExpanded;
-}
-
 // ==================== SKY ANIMATION ====================
 function initSky() {
   resizeSkyCanvas();
   createStars();
-  // OPTIMIZATION: Use combined animation loop instead of separate sky loop
   if (!animationFrameId) animateCombined();
 }
 
 function resizeSkyCanvas() {
-  skyCanvas.width = window.innerWidth;
-  skyCanvas.height = window.innerHeight;
+  const dpr = window.devicePixelRatio || 1;
+  const safeDpr = Math.min(dpr, 1.25);
+  skyCanvas.width = Math.floor(window.innerWidth * safeDpr);
+  skyCanvas.height = Math.floor(window.innerHeight * safeDpr);
+  skyCanvas.style.width = `${window.innerWidth}px`;
+  skyCanvas.style.height = `${window.innerHeight}px`;
+  skyCtx.setTransform(safeDpr, 0, 0, safeDpr, 0, 0);
+  skyCtx.imageSmoothingEnabled = true;
+  skyCtx.imageSmoothingQuality = 'high';
 }
 
-// OPTIMIZATION: Reduced star count from 120 to 80 (33% reduction) for better performance
 function createStars() {
   stars = [];
-  const starCount = Math.min(80, Math.floor(skyCanvas.width * skyCanvas.height / 12000));
+  const starCount = Math.min(70, Math.floor(window.innerWidth * window.innerHeight / 18000));
   for (let i = 0; i < starCount; i++) {
     stars.push({
-      x: Math.random() * skyCanvas.width,
-      y: Math.random() * skyCanvas.height * 0.7,
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight * 0.7,
       size: Math.random() * 2 + 0.5,
       twinkleSpeed: Math.random() * 0.03 + 0.01,
       opacity: Math.random() * 0.8 + 0.2,
@@ -1213,8 +1285,6 @@ function lerpColor(c1, c2, t) {
 function getInterpolatedSkyColors(progress) {
   progress = Math.max(0, Math.min(1, progress));
 
-  // Key phases: sun 0-0.5, moon 0.5-1.0
-  // Colors transition naturally through day-night cycle
   const phases = [
     { at: 0.00, color: THEME_COLORS[currentTheme].sunrise },
     { at: 0.08, color: THEME_COLORS[currentTheme].morning },
@@ -1226,7 +1296,6 @@ function getInterpolatedSkyColors(progress) {
     { at: 1.00, color: THEME_COLORS[currentTheme].sunrise }
   ];
 
-  // Find surrounding phases
   let prev = phases[0], next = phases[1];
   for (let i = 0; i < phases.length - 1; i++) {
     if (progress >= phases[i].at && progress <= phases[i + 1].at) {
@@ -1238,8 +1307,6 @@ function getInterpolatedSkyColors(progress) {
 
   const range = next.at - prev.at;
   const t = range > 0 ? (progress - prev.at) / range : 0;
-
-  // Smooth easing for more natural transitions
   const eased = t * t * (3 - 2 * t); // smoothstep
 
   return {
@@ -1250,92 +1317,65 @@ function getInterpolatedSkyColors(progress) {
 }
 
 function drawSky(colors) {
-  const gradient = skyCtx.createLinearGradient(0, 0, 0, skyCanvas.height);
+  const gradient = skyCtx.createLinearGradient(0, 0, 0, window.innerHeight);
   gradient.addColorStop(0, `rgb(${colors.top.join(',')})`);
   gradient.addColorStop(0.5, `rgb(${colors.middle.join(',')})`);
   gradient.addColorStop(1, `rgb(${colors.bottom.join(',')})`);
   skyCtx.fillStyle = gradient;
-  skyCtx.fillRect(0, 0, skyCanvas.width, skyCanvas.height);
+  skyCtx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 }
 
+// Brighter, larger sun core and glow.
 function drawSun(progress) {
-  // Sun visible from 0.0 to 0.5
   if (progress >= 0.5) return;
 
   const t = progress / 0.5; // 0 to 1
-  const sunX = skyCanvas.width * 0.1 + skyCanvas.width * 0.8 * t;
-  const sunY = skyCanvas.height * 0.85 - Math.sin(t * Math.PI) * skyCanvas.height * 0.65;
-  const sunSize = 30 + Math.sin(t * Math.PI) * 15;
-
-  // Horizon fade: fade near edges (sunrise/sunset)
+  const sunX = window.innerWidth * 0.1 + window.innerWidth * 0.8 * t;
+  const sunY = window.innerHeight * 0.85 - Math.sin(t * Math.PI) * window.innerHeight * 0.65;
+  const sunSize = 32 + Math.sin(t * Math.PI) * 48;
   const horizonFade = Math.sin(t * Math.PI);
 
-  // Outer glow
-  const glowGradient = skyCtx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunSize * 3.5);
-  glowGradient.addColorStop(0, `rgba(255, 255, 200, ${0.35 * horizonFade})`);
-  glowGradient.addColorStop(0.4, `rgba(255, 200, 100, ${0.15 * horizonFade})`);
-  glowGradient.addColorStop(1, 'rgba(255, 150, 50, 0)');
-  skyCtx.fillStyle = glowGradient;
+  skyCtx.fillStyle = `rgba(255, 230, 170, ${0.28 * horizonFade})`;
   skyCtx.beginPath();
-  skyCtx.arc(sunX, sunY, sunSize * 3.5, 0, Math.PI * 2);
+  skyCtx.arc(sunX, sunY, sunSize * 2, 0, Math.PI * 2);
   skyCtx.fill();
 
-  // Sun body
-  const sunGradient = skyCtx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunSize);
-  sunGradient.addColorStop(0, `rgba(255, 255, 220, ${0.9 + 0.1 * horizonFade})`);
-  sunGradient.addColorStop(0.7, `rgba(255, 210, 100, ${0.85 + 0.15 * horizonFade})`);
-  sunGradient.addColorStop(1, `rgba(255, 150, 50, ${0.6 + 0.2 * horizonFade})`);
-  skyCtx.fillStyle = sunGradient;
+  skyCtx.fillStyle = `rgba(255, 225, 130, ${0.98 * horizonFade})`;
   skyCtx.beginPath();
   skyCtx.arc(sunX, sunY, sunSize, 0, Math.PI * 2);
   skyCtx.fill();
 }
 
+// Brighter, larger moon core and glow.
 function drawMoon(progress) {
-  // Moon visible from 0.5 to 1.0
   if (progress < 0.5) return;
 
   const t = (progress - 0.5) / 0.5; // 0 to 1
-  const moonX = skyCanvas.width * 0.1 + skyCanvas.width * 0.8 * t;
-  const moonY = skyCanvas.height * 0.85 - Math.sin(t * Math.PI) * skyCanvas.height * 0.65;
-  const moonSize = 28 + Math.sin(t * Math.PI) * 8;
+  const moonX = window.innerWidth * 0.1 + window.innerWidth * 0.8 * t;
+  const moonY = window.innerHeight * 0.85 - Math.sin(t * Math.PI) * window.innerHeight * 0.65;
+  const moonSize = 40 + Math.sin(t * Math.PI) * 24;
   const horizonFade = Math.sin(t * Math.PI);
 
-  // Moon glow
-  const glowGradient = skyCtx.createRadialGradient(moonX, moonY, 0, moonX, moonY, moonSize * 3);
-  glowGradient.addColorStop(0, `rgba(200, 220, 255, ${0.25 * horizonFade})`);
-  glowGradient.addColorStop(0.5, `rgba(150, 180, 255, ${0.1 * horizonFade})`);
-  glowGradient.addColorStop(1, 'rgba(100, 150, 255, 0)');
-  skyCtx.fillStyle = glowGradient;
+  skyCtx.fillStyle = `rgba(205, 225, 255, ${0.2 * horizonFade})`;
   skyCtx.beginPath();
-  skyCtx.arc(moonX, moonY, moonSize * 3, 0, Math.PI * 2);
+  skyCtx.arc(moonX, moonY, moonSize * 1.8, 0, Math.PI * 2);
   skyCtx.fill();
 
-  // Moon body
-  const moonGradient = skyCtx.createRadialGradient(moonX, moonY, 0, moonX, moonY, moonSize);
-  moonGradient.addColorStop(0, 'rgba(240, 240, 255, 1)');
-  moonGradient.addColorStop(0.6, 'rgba(210, 215, 235, 1)');
-  moonGradient.addColorStop(1, 'rgba(180, 185, 210, 1)');
-  skyCtx.fillStyle = moonGradient;
+  skyCtx.fillStyle = `rgba(235, 240, 252, ${Math.min(1, horizonFade + 0.1)})`;
   skyCtx.beginPath();
   skyCtx.arc(moonX, moonY, moonSize, 0, Math.PI * 2);
   skyCtx.fill();
 
-  // Moon craters
-  skyCtx.fillStyle = `rgba(170, 175, 200, ${0.3 * horizonFade})`;
+  skyCtx.fillStyle = `rgba(180, 185, 210, ${0.2 * horizonFade})`;
   skyCtx.beginPath();
   skyCtx.arc(moonX - moonSize * 0.25, moonY - moonSize * 0.15, moonSize * 0.15, 0, Math.PI * 2);
   skyCtx.fill();
   skyCtx.beginPath();
   skyCtx.arc(moonX + moonSize * 0.2, moonY + moonSize * 0.25, moonSize * 0.12, 0, Math.PI * 2);
   skyCtx.fill();
-  skyCtx.beginPath();
-  skyCtx.arc(moonX + moonSize * 0.3, moonY - moonSize * 0.1, moonSize * 0.08, 0, Math.PI * 2);
-  skyCtx.fill();
 }
 
 function drawStars(progress) {
-  // Stars visible during night phase (0.45 to 0.98)
   let visibility = 0;
   if (progress >= 0.45 && progress < 0.55) {
     visibility = (progress - 0.45) / 0.1;
@@ -1359,10 +1399,16 @@ function drawStars(progress) {
   });
 }
 
-// OPTIMIZATION: Combined animateSky and animateParticles into single loop
-// This reduces from 2 animation frames per screen refresh to 1, cutting CPU usage ~50%
-function animateCombined() {
-  // Calculate progress once and cache it
+// Combined animation loop (optimized)
+function animateCombined(timestamp = 0) {
+  const elapsedMs = lastRenderTime ? (timestamp - lastRenderTime) : animationFrameInterval;
+  if (elapsedMs < animationFrameInterval) {
+    animationFrameId = requestAnimationFrame(animateCombined);
+    return;
+  }
+  lastRenderTime = timestamp;
+  const timeScale = Math.max(0.8, Math.min(2, elapsedMs / 16.67));
+
   let progress = 0;
   if (timerState.totalTime > 0) {
     progress = Math.min(1, Math.max(0, 1 - (timerState.remainingTime / timerState.totalTime)));
@@ -1377,24 +1423,22 @@ function animateCombined() {
   drawStars(progress);
 
   // Particle rendering
-  particlesCtx.clearRect(0, 0, particlesCanvas.width, particlesCanvas.height);
-  const w = particlesCanvas.width;
-  const h = particlesCanvas.height;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  particlesCtx.clearRect(0, 0, w, h);
 
   particles.forEach(particle => {
-    particle.x += particle.speedX;
-    particle.y += particle.speedY;
+    particle.x += particle.speedX * timeScale;
+    particle.y += particle.speedY * timeScale;
 
     switch (particle.type) {
       case 'rain':
-        // Reset when off screen
         if (particle.y > h + 10) {
           particle.y = -10;
           particle.x = Math.random() * w;
         }
         if (particle.x > w + 10) particle.x = -10;
 
-        // OPTIMIZATION: Use cached progress instead of recalculating
         let rainColor;
         if (cachedProgress < 0.5) {
           rainColor = `rgba(30, 80, 160, ${particle.opacity})`;
@@ -1411,7 +1455,7 @@ function animateCombined() {
         break;
 
       case 'snow':
-        particle.wobble += 0.02;
+        particle.wobble += 0.02 * timeScale;
         particle.x += Math.sin(particle.wobble) * 0.3;
 
         if (particle.y > h + 10) {
@@ -1443,7 +1487,7 @@ function animateCombined() {
         break;
 
       case 'fog':
-        particle.wobble += 0.005;
+        particle.wobble += 0.005 * timeScale;
         particle.x += particle.speedX + Math.sin(particle.wobble) * 0.05;
         particle.y += particle.speedY;
 
@@ -1452,18 +1496,10 @@ function animateCombined() {
         if (particle.y < -particle.size) particle.y = h + particle.size;
         if (particle.y > h + particle.size) particle.y = -particle.size;
 
-        particlesCtx.globalAlpha = particle.opacity;
-        const fogGradient = particlesCtx.createRadialGradient(
-          particle.x, particle.y, 0,
-          particle.x, particle.y, particle.size
-        );
-        fogGradient.addColorStop(0, isDarkMode ? 'rgba(150, 160, 170, 0.3)' : 'rgba(220, 230, 240, 0.4)');
-        fogGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        particlesCtx.fillStyle = fogGradient;
+        particlesCtx.fillStyle = isDarkMode ? 'rgba(150, 160, 170, 0.15)' : 'rgba(220, 230, 240, 0.2)';
         particlesCtx.beginPath();
         particlesCtx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         particlesCtx.fill();
-        particlesCtx.globalAlpha = 1;
         break;
 
       case 'firefly':
@@ -1475,18 +1511,10 @@ function animateCombined() {
         particle.opacity += (Math.random() - 0.5) * 0.06;
         particle.opacity = Math.max(0.15, Math.min(0.6, particle.opacity));
 
-        particlesCtx.globalAlpha = particle.opacity;
-        const gradient = particlesCtx.createRadialGradient(
-          particle.x, particle.y, 0,
-          particle.x, particle.y, particle.size * 2.5
-        );
-        gradient.addColorStop(0, 'rgba(255, 255, 150, 0.8)');
-        gradient.addColorStop(1, 'rgba(255, 255, 150, 0)');
-        particlesCtx.fillStyle = gradient;
+        particlesCtx.fillStyle = `rgba(255, 255, 150, ${particle.opacity * 0.4})`;
         particlesCtx.beginPath();
         particlesCtx.arc(particle.x, particle.y, particle.size * 2.5, 0, Math.PI * 2);
         particlesCtx.fill();
-        particlesCtx.globalAlpha = 1;
         break;
 
       case 'leaf':
@@ -1502,6 +1530,81 @@ function animateCombined() {
         particlesCtx.fill();
         particlesCtx.globalAlpha = 1;
         break;
+
+      case 'clouds':
+        particle.x += particle.speedX;
+        particle.y += particle.speedY;
+
+        if (particle.x < -particle.size) particle.x = w + particle.size;
+        if (particle.x > w + particle.size) particle.x = -particle.size;
+        if (particle.y < -particle.size) particle.y = h + particle.size;
+        if (particle.y > h + particle.size) particle.y = -particle.size;
+
+        particlesCtx.fillStyle = isDarkMode ? 'rgba(100, 110, 120, 0.15)' : 'rgba(255, 255, 255, 0.2)';
+        particlesCtx.beginPath();
+        particlesCtx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        particlesCtx.fill();
+        break;
+
+      case 'wind':
+        particle.x += particle.speedX;
+        particle.y += particle.speedY;
+
+        if (particle.x > w + particle.length) particle.x = -particle.length;
+        if (particle.y < -10) particle.y = h + 10;
+        if (particle.y > h + 10) particle.y = -10;
+
+        particlesCtx.strokeStyle = isDarkMode ? `rgba(180, 190, 200, ${particle.opacity})` : `rgba(150, 160, 170, ${particle.opacity})`;
+        particlesCtx.lineWidth = particle.size;
+        particlesCtx.beginPath();
+        particlesCtx.moveTo(particle.x, particle.y);
+        particlesCtx.lineTo(particle.x - particle.length, particle.y);
+        particlesCtx.stroke();
+        break;
+
+      case 'blossom':
+        particle.wobble += 0.02 * timeScale;
+        particle.x += Math.sin(particle.wobble) * 0.3;
+        particle.rotation += particle.rotationSpeed * timeScale;
+
+        if (particle.y > h + 10) {
+          particle.y = -10;
+          particle.x = Math.random() * w;
+        }
+        if (particle.x < -10) particle.x = w + 10;
+        if (particle.x > w + 10) particle.x = -10;
+
+        particlesCtx.save();
+        particlesCtx.translate(particle.x, particle.y);
+        particlesCtx.rotate(particle.rotation);
+        particlesCtx.fillStyle = `rgba(255, 182, 193, ${particle.opacity})`;
+        particlesCtx.beginPath();
+        particlesCtx.ellipse(0, 0, particle.size, particle.size * 0.6, 0, 0, Math.PI * 2);
+        particlesCtx.fill();
+        particlesCtx.restore();
+        break;
+
+      case 'meteor':
+        particle.x += particle.speedX;
+        particle.y += particle.speedY;
+
+        // Re-randomize each streak on respawn to avoid repetitive patterns.
+        if (particle.x < -particle.length || particle.x > w + particle.length ||
+            particle.y < -particle.length || particle.y > h + particle.length) {
+          Object.assign(particle, createMeteorParticle(w, h));
+        }
+
+        const speed = Math.sqrt(particle.speedX * particle.speedX + particle.speedY * particle.speedY);
+        const tailX = particle.x + (particle.speedX / speed) * particle.length;
+        const tailY = particle.y + (particle.speedY / speed) * particle.length;
+
+        particlesCtx.strokeStyle = `rgba(255, 255, 255, ${particle.opacity})`;
+        particlesCtx.lineWidth = particle.size;
+        particlesCtx.beginPath();
+        particlesCtx.moveTo(particle.x, particle.y);
+        particlesCtx.lineTo(tailX, tailY);
+        particlesCtx.stroke();
+        break;
     }
   });
 
@@ -1512,37 +1615,36 @@ function animateCombined() {
 function initParticles() {
   resizeParticlesCanvas();
   createParticles();
-  // OPTIMIZATION: Use combined animation loop instead of separate particle loop
   if (!animationFrameId) animateCombined();
 }
 
 function resizeParticlesCanvas() {
-  particlesCanvas.width = window.innerWidth;
-  particlesCanvas.height = window.innerHeight;
+  const dpr = window.devicePixelRatio || 1;
+  const safeDpr = Math.min(dpr, 1.25);
+  particlesCanvas.width = Math.floor(window.innerWidth * safeDpr);
+  particlesCanvas.height = Math.floor(window.innerHeight * safeDpr);
+  particlesCanvas.style.width = `${window.innerWidth}px`;
+  particlesCanvas.style.height = `${window.innerHeight}px`;
+  particlesCtx.setTransform(safeDpr, 0, 0, safeDpr, 0, 0);
 }
 
 function getActiveWeather() {
   if (weatherEffect === 'auto') {
-    // Cycle through weather types: clear, rain, snow, thunderstorm
-    const weatherTypes = ['clear', 'rain', 'snow', 'thunderstorm'];
-    return weatherTypes[weatherCycleIndex % weatherTypes.length];
+    return AUTO_WEATHER_SEQUENCE[weatherCycleIndex % AUTO_WEATHER_SEQUENCE.length];
   }
-  return weatherEffect;
+  return isAllowedWeatherMode(weatherEffect) ? weatherEffect : 'auto';
 }
 
-// OPTIMIZATION: Reduced particle counts for better CPU performance
-// Rain: 100→70 (30% reduction), Snow: 60→40 (33% reduction)
-// Thunderstorm rain: 120→80 (33% reduction), Fog: 40→25 (37% reduction)
-// Clear: 25→15 (40% reduction)
+// MODIFICATION: Optimized particle counts for better CPU performance
 function createParticles() {
   particles = [];
   const weather = getActiveWeather();
-  const w = particlesCanvas.width;
-  const h = particlesCanvas.height;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
 
   switch (weather) {
     case 'rain': {
-      const count = Math.min(70, Math.floor(w * h / 15000));
+      const count = scaledParticleCount(Math.min(140, Math.floor(w * h / 16000)));
       for (let i = 0; i < count; i++) {
         particles.push({
           x: Math.random() * w,
@@ -1558,7 +1660,7 @@ function createParticles() {
       break;
     }
     case 'snow': {
-      const count = Math.min(40, Math.floor(w * h / 25000));
+      const count = scaledParticleCount(Math.min(90, Math.floor(w * h / 22000)));
       for (let i = 0; i < count; i++) {
         particles.push({
           x: Math.random() * w,
@@ -1573,72 +1675,56 @@ function createParticles() {
       }
       break;
     }
-    case 'thunderstorm': {
-      // Rain particles for thunderstorm
-      const rainCount = Math.min(80, Math.floor(w * h / 12000));
-      for (let i = 0; i < rainCount; i++) {
-        particles.push({
-          x: Math.random() * w,
-          y: Math.random() * h,
-          size: Math.random() * 1.5 + 0.5,
-          speedX: 0.5 + Math.random() * 0.7,
-          speedY: 7 + Math.random() * 6,
-          opacity: Math.random() * 0.5 + 0.3,
-          type: 'rain',
-          length: Math.random() * 12 + 10
-        });
-      }
-      // Add lightning flash state (not a particle, but tracked here)
-      particles.push({
-        type: 'lightning',
-        flashOpacity: 0,
-        flashTimer: 0,
-        nextFlash: Math.random() * 300 + 200
-      });
-      break;
-    }
-    case 'fog': {
-      const count = Math.min(25, Math.floor(w * h / 35000));
+    case 'blossom': {
+      const count = scaledParticleCount(Math.min(100, Math.floor(w * h / 18000)));
       for (let i = 0; i < count; i++) {
         particles.push({
           x: Math.random() * w,
           y: Math.random() * h,
-          size: Math.random() * 80 + 60,
-          speedX: (Math.random() - 0.5) * 0.15,
-          speedY: (Math.random() - 0.5) * 0.1,
-          opacity: Math.random() * 0.15 + 0.05,
-          type: 'fog',
-          wobble: Math.random() * Math.PI * 2
+          size: Math.random() * 4 + 2,
+          speedX: (Math.random() - 0.5) * 0.5,
+          speedY: 0.8 + Math.random() * 1.2,
+          opacity: Math.random() * 0.7 + 0.4,
+          type: 'blossom',
+          wobble: Math.random() * Math.PI * 2,
+          rotation: Math.random() * Math.PI * 2,
+          rotationSpeed: (Math.random() - 0.5) * 0.05
         });
       }
       break;
     }
-    default: { // clear / auto
-      const count = Math.min(15, Math.floor(w * h / 60000));
+    case 'meteor': {
+      const count = 5;
+      for (let i = 0; i < count; i++) {
+        particles.push(createMeteorParticle(w, h));
+      }
+      break;
+    }
+    default: {
+      const count = scaledParticleCount(Math.min(90, Math.floor(w * h / 20000)));
       for (let i = 0; i < count; i++) {
         particles.push({
           x: Math.random() * w,
           y: Math.random() * h,
-          size: Math.random() * 3 + 2,
-          speedX: (Math.random() - 0.5) * 0.4,
-          speedY: (Math.random() - 0.5) * 0.3,
-          opacity: Math.random() * 0.4 + 0.2,
-          type: Math.random() > 0.5 ? 'firefly' : 'leaf'
+          size: Math.random() * 4 + 2,
+          speedX: (Math.random() - 0.5) * 0.5,
+          speedY: 0.8 + Math.random() * 1.2,
+          opacity: Math.random() * 0.7 + 0.4,
+          type: 'blossom',
+          wobble: Math.random() * Math.PI * 2,
+          rotation: Math.random() * Math.PI * 2,
+          rotationSpeed: (Math.random() - 0.5) * 0.05
         });
       }
     }
   }
 }
 
-// OPTIMIZATION: animateParticles is now integrated into animateCombined
-// This function is kept for reference but no longer used
-
 // ==================== EVENT LISTENERS ====================
 document.addEventListener('DOMContentLoaded', () => {
   initDOM();
   loadFromStorage();
 
-  // Apply saved settings
   if (isDarkMode) {
     document.body.classList.add('dark-mode');
     themeToggleBtn.querySelector('.theme-icon').textContent = '☀️';
@@ -1653,47 +1739,43 @@ document.addEventListener('DOMContentLoaded', () => {
   volumeSlider.value = soundSettings.volume * 100;
   volumeValue.textContent = `${Math.round(soundSettings.volume * 100)}%`;
 
-  // Restore checkbox states
   highContrastToggle.checked = highContrast;
   focusModeToggle.checked = options.focusMode;
+  if (lowPowerToggle) lowPowerToggle.checked = options.lowPowerMode;
   document.getElementById('autoStartToggle').checked = options.autoStart;
   document.getElementById('skipBreaksToggle').checked = options.skipBreaks;
 
-  // Set active theme
   themeOptions.forEach(btn => {
     const isActive = btn.dataset.theme === currentTheme;
     btn.classList.toggle('active', isActive);
     btn.setAttribute('aria-pressed', isActive.toString());
   });
 
-  // Set active sound type
   soundTypeBtns.forEach(btn => {
     const isActive = btn.dataset.sound === soundSettings.soundType;
     btn.classList.toggle('active', isActive);
     btn.setAttribute('aria-pressed', isActive.toString());
   });
 
-  // Set active weather
   weatherBtns.forEach(btn => {
     const isActive = btn.dataset.weather === weatherEffect;
     btn.classList.toggle('active', isActive);
     btn.setAttribute('aria-pressed', isActive.toString());
   });
 
-  // Set active preset
   presetBtns.forEach(btn => {
     const minutes = timerState.totalTime / 60000;
     btn.setAttribute('aria-pressed', (parseInt(btn.dataset.minutes) === minutes).toString());
   });
 
-  // Restore task view state (sort/filter)
   if (taskSort) taskSort.value = taskViewState.sortBy;
   if (taskFilter) taskFilter.value = taskViewState.filterBy;
 
   updateThemeColors();
+  applyLowPowerMode();
   initTimerStars();
   initParticles();
-  // OPTIMIZATION: initSky is no longer needed separately as it shares the combined loop
+  initSky();
   renderTasks();
   updateDisplay();
   updateProgress();
@@ -1702,7 +1784,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateTimerType();
   updateModeButtons();
 
-  // ============ Timer Controls ============
+  // Timer Controls
   startBtn.addEventListener('click', () => {
     requestNotificationPermission();
     if (timerState.isRunning) {
@@ -1715,24 +1797,20 @@ document.addEventListener('DOMContentLoaded', () => {
   resetBtn.addEventListener('click', resetTimer);
   skipBtn.addEventListener('click', skipTimer);
 
-  // Mode buttons
   modeBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       setMode(btn.dataset.mode);
     });
   });
 
-  // Theme toggle (dark/light)
   themeToggleBtn.addEventListener('click', toggleTheme);
 
-  // Preset buttons
   presetBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       setCustomDuration(parseInt(btn.dataset.minutes));
     });
   });
 
-  // Custom duration
   customDurationBtn.addEventListener('click', () => {
     const minutes = parseInt(customMinutes.value);
     if (minutes && minutes > 0 && minutes <= 120) {
@@ -1746,59 +1824,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Volume slider
   volumeSlider.addEventListener('input', (e) => {
     soundSettings.volume = e.target.value / 100;
     volumeValue.textContent = `${e.target.value}%`;
     saveToStorage();
   });
 
-  // Test sound
   testSoundBtn.addEventListener('click', playAlarm);
 
-  // Sound type buttons
   soundTypeBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       setSoundType(btn.dataset.sound);
     });
   });
 
-  // Weather buttons
   weatherBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       setWeatherEffect(btn.dataset.weather);
     });
   });
 
-  // Options toggle
-  optionsToggle.addEventListener('click', toggleOptionsList);
-
-  // High contrast toggle (no double-toggle)
   highContrastToggle.addEventListener('change', (e) => {
     highContrast = e.target.checked;
     applyHighContrast();
   });
 
-  // Focus mode toggle (no double-toggle)
   focusModeToggle.addEventListener('change', (e) => {
     options.focusMode = e.target.checked;
     applyFocusMode();
   });
 
-  // Focus mode exit button
+  if (lowPowerToggle) {
+    lowPowerToggle.addEventListener('change', (e) => {
+      options.lowPowerMode = e.target.checked;
+      applyLowPowerMode();
+    });
+  }
+
   focusExitBtn.addEventListener('click', () => {
     options.focusMode = false;
     applyFocusMode();
   });
 
-  // Theme options
   themeOptions.forEach(btn => {
     btn.addEventListener('click', () => {
       setTheme(btn.dataset.theme);
     });
   });
 
-  // Task input
   addTaskBtn.addEventListener('click', addTask);
   newTaskInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
@@ -1807,55 +1880,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Task sorting
   taskSort.addEventListener('change', (e) => {
     setTaskSort(e.target.value);
   });
 
-  // Task filtering
   taskFilter.addEventListener('change', (e) => {
     setTaskFilter(e.target.value);
   });
 
-  // CSV export
   exportCsvBtn.addEventListener('click', exportTasksToCSV);
 
-  // CSV import
   importCsvBtn.addEventListener('click', () => {
     csvFileInput.click();
   });
   csvFileInput.addEventListener('change', (e) => {
     if (e.target.files.length > 0) {
       importTasksFromCSV(e.target.files[0]);
-      e.target.value = ''; // Reset file input
+      e.target.value = '';
     }
   });
 
-  // Settings button removed from UI
-
-  // Shortcuts button
   shortcutsBtn.addEventListener('click', showShortcuts);
 
-  // Onboarding modal
   closeOnboarding.addEventListener('click', hideOnboarding);
   startJourneyBtn.addEventListener('click', hideOnboarding);
 
-  // Shortcuts modal
   closeShortcuts.addEventListener('click', hideShortcuts);
 
-  // Auto-start toggle
   document.getElementById('autoStartToggle').addEventListener('change', (e) => {
     options.autoStart = e.target.checked;
     saveToStorage();
   });
 
-  // Skip breaks toggle
   document.getElementById('skipBreaksToggle').addEventListener('change', (e) => {
     options.skipBreaks = e.target.checked;
     saveToStorage();
   });
 
-  // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
     const isInputFocused = document.activeElement &&
       (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA');
@@ -1899,7 +1960,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // OPTIMIZATION: Debounced window resize to prevent excessive canvas recreations
   let resizeTimeout;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimeout);
@@ -1908,19 +1968,18 @@ document.addEventListener('DOMContentLoaded', () => {
       resizeSkyCanvas();
       createStars();
       createParticles();
-    }, 200); // Increased from 150ms to 200ms for better debouncing
+    }, 200);
   });
 
-  // OPTIMIZATION: Pause canvas animations when tab is hidden to save CPU
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
     } else {
+      lastRenderTime = 0;
       if (!animationFrameId) animateCombined();
     }
   });
 
-  // Close modals when clicking outside
   [onboardingModal, shortcutsModal].forEach(modal => {
     if (modal) {
       modal.addEventListener('click', (e) => {
