@@ -493,6 +493,11 @@ function updateThemeColors() {
   document.documentElement.style.setProperty('--color-short-break-light', colors.shortLight);
   document.documentElement.style.setProperty('--color-long-break', colors.long);
   document.documentElement.style.setProperty('--color-long-break-light', colors.longLight);
+  // Update glow for shadow effects
+  const r = parseInt(colors.focus.slice(1, 3), 16);
+  const g = parseInt(colors.focus.slice(3, 5), 16);
+  const b = parseInt(colors.focus.slice(5, 7), 16);
+  document.documentElement.style.setProperty('--color-focus-glow', `rgba(${r}, ${g}, ${b}, 0.25)`);
 }
 
 // ==================== AUDIO FUNCTIONS ====================
@@ -1154,7 +1159,6 @@ function setTaskFilter(filterBy) {
 function toggleTheme() {
   isDarkMode = !isDarkMode;
   document.body.classList.toggle('dark-mode', isDarkMode);
-  themeToggleBtn.querySelector('.theme-icon').textContent = isDarkMode ? '☀️' : '🌙';
   saveToStorage();
 }
 
@@ -1805,7 +1809,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (isDarkMode) {
     document.body.classList.add('dark-mode');
-    themeToggleBtn.querySelector('.theme-icon').textContent = '☀️';
   }
   if (highContrast) {
     document.body.classList.add('high-contrast');
@@ -2057,8 +2060,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-      if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+      // Stop all animations to save CPU/battery when in background
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+      // Clear particle canvas to free memory
+      if (particlesCtx) {
+        particlesCtx.clearRect(0, 0, particlesCanvas.width, particlesCanvas.height);
+      }
     } else {
+      // Resume animations when app comes back to foreground
       lastRenderTime = 0;
       if (!animationFrameId) animateCombined();
     }

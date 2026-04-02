@@ -18,6 +18,12 @@
 <meta name="twitter:title" content="Pomodoro Prime">
 
 <title>Pomodoro Prime - Forest Focus Timer</title>
+
+<!-- Typography: Fraunces for display, Outfit for UI -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -25,69 +31,84 @@
 <canvas id="skyCanvas" class="sky-canvas" aria-hidden="true"></canvas>
 <!-- Floating Particles Canvas -->
 <canvas id="particlesCanvas" class="particles-canvas" aria-hidden="true"></canvas>
+<!-- Noise texture overlay -->
+<div class="noise-overlay" aria-hidden="true"></div>
 
-<div class="container">
+<div class="app-container">
   <header class="header">
-    <div class="header-top">
-      <h1 class="title">🌲 Pomodoro Prime</h1>
-      <div class="header-controls">
-        <button class="icon-btn" id="shortcutsBtn" aria-label="Show keyboard shortcuts">
-          <span aria-hidden="true">⌨️</span>
+    <div class="header-inner">
+      <div class="header-brand">
+        <div class="brand-icon" aria-hidden="true">🌲</div>
+        <div class="brand-text">
+          <h1 class="title">Pomodoro Prime</h1>
+          <p class="subtitle">Stay focused, take breaks, repeat</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="action-btn" id="shortcutsBtn" aria-label="Show keyboard shortcuts">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg>
         </button>
-        <button class="icon-btn" id="themeToggle" aria-label="Toggle dark mode">
-          <span class="theme-icon" aria-hidden="true">🌙</span>
+        <button class="action-btn" id="themeToggle" aria-label="Toggle dark mode">
+          <span class="theme-icon-wrap" aria-hidden="true">
+            <span class="theme-icon moon-icon">🌙</span>
+            <span class="theme-icon sun-icon">☀️</span>
+          </span>
         </button>
       </div>
     </div>
-    <p class="subtitle">Stay focused, take breaks, repeat</p>
   </header>
 
-  <main class="main">
+  <main class="main-content">
     <!-- Timer Display -->
     <section class="timer-section" aria-live="polite">
-      <div class="timer-type" id="timerType" role="status">Focus</div>
+      <div class="timer-type-badge" id="timerType" role="status">Focus</div>
 
       <!-- Ring with countdown centered inside -->
       <div class="timer-visual">
-        <div class="timer-progress">
-          <div class="progress-ring" id="progressRing">
-            <svg class="progress-svg" viewBox="0 0 100 100" role="img" aria-label="Timer progress">
-              <defs>
-                <linearGradient id="timerSkyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" style="stop-color:#87CEEB;stop-opacity:1" />
-                  <stop offset="50%" style="stop-color:#E0F7FA;stop-opacity:1" />
-                  <stop offset="100%" style="stop-color:#FFF9C4;stop-opacity:1" />
-                </linearGradient>
-                <radialGradient id="celestialGlow">
-                  <stop offset="0%" style="stop-color:#FFD700;stop-opacity:0.8" />
-                  <stop offset="100%" style="stop-color:#FFD700;stop-opacity:0" />
-                </radialGradient>
-                <clipPath id="timerClip">
-                  <circle cx="50" cy="50" r="44"/>
-                </clipPath>
-              </defs>
+        <div class="timer-ring-wrap">
+          <div class="timer-progress">
+            <div class="progress-ring" id="progressRing">
+              <svg class="progress-svg" viewBox="0 0 100 100" role="img" aria-label="Timer progress">
+                <defs>
+                  <linearGradient id="timerSkyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#87CEEB;stop-opacity:1" />
+                    <stop offset="50%" style="stop-color:#E0F7FA;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#FFF9C4;stop-opacity:1" />
+                  </linearGradient>
+                  <radialGradient id="celestialGlow">
+                    <stop offset="0%" style="stop-color:#FFD700;stop-opacity:0.8" />
+                    <stop offset="100%" style="stop-color:#FFD700;stop-opacity:0" />
+                  </radialGradient>
+                  <clipPath id="timerClip">
+                    <circle cx="50" cy="50" r="44"/>
+                  </clipPath>
+                </defs>
 
-              <!-- Background circle with sky gradient -->
-              <circle class="progress-bg" cx="50" cy="50" r="45" fill="url(#timerSkyGradient)" stroke="none"/>
+                <!-- Background circle with sky gradient -->
+                <circle class="progress-bg" cx="50" cy="50" r="45" fill="url(#timerSkyGradient)" stroke="none"/>
 
-              <!-- Mini stars inside timer (shown at night) -->
-              <g id="timerStars" clip-path="url(#timerClip)" opacity="0"></g>
+                <!-- Mini stars inside timer (shown at night) -->
+                <g id="timerStars" clip-path="url(#timerClip)" opacity="0"></g>
 
-              <!-- Progress ring -->
-              <circle class="progress-track" cx="50" cy="50" r="45" fill="none" stroke-width="5"/>
-              <circle class="progress-bar" id="progressBar" cx="50" cy="50" r="45" fill="none" stroke-width="5"
-                stroke-dasharray="283" stroke-dashoffset="0" stroke-linecap="round"/>
+                <!-- Progress ring -->
+                <circle class="progress-track" cx="50" cy="50" r="45" fill="none" stroke-width="5"/>
+                <circle class="progress-bar" id="progressBar" cx="50" cy="50" r="45" fill="none" stroke-width="5"
+                  stroke-dasharray="283" stroke-dashoffset="0" stroke-linecap="round"/>
 
-              <!-- Celestial Body (Sun/Moon) -->
-              <g id="celestialBody" class="celestial-body" clip-path="url(#timerClip)">
-                <circle id="celestialGlowEffect" cx="50" cy="70" r="18" fill="url(#celestialGlow)" opacity="0"/>
-                <circle id="celestialCircle" cx="50" cy="70" r="6" fill="#FFD700"/>
-              </g>
-            </svg>
+                <!-- Celestial Body (Sun/Moon) -->
+                <g id="celestialBody" class="celestial-body" clip-path="url(#timerClip)">
+                  <circle id="celestialGlowEffect" cx="50" cy="70" r="18" fill="url(#celestialGlow)" opacity="0"/>
+                  <circle id="celestialCircle" cx="50" cy="70" r="6" fill="#FFD700"/>
+                </g>
+              </svg>
+            </div>
           </div>
-        </div>
-        <div class="timer-center">
-          <div class="timer-display" id="timerDisplay" aria-label="Time remaining">25:00</div>
+          <!-- Vignette overlay inside ring -->
+          <div class="ring-vignette" aria-hidden="true"></div>
+          <!-- Timer display centered in ring -->
+          <div class="timer-center">
+            <div class="timer-display" id="timerDisplay" aria-label="Time remaining">25:00</div>
+          </div>
         </div>
       </div>
 
@@ -97,10 +118,12 @@
           <span class="timer-stat-label">Progress</span>
           <span class="timer-stat-value" id="progressPercent">0%</span>
         </div>
+        <div class="timer-stat-divider" aria-hidden="true"></div>
         <div class="timer-stat">
           <span class="timer-stat-label">Elapsed</span>
           <span class="timer-stat-value" id="timeElapsed">00:00</span>
         </div>
+        <div class="timer-stat-divider" aria-hidden="true"></div>
         <div class="timer-stat">
           <span class="timer-stat-label">Remaining</span>
           <span class="timer-stat-value" id="timeRemaining">25:00</span>
@@ -120,17 +143,15 @@
 
       <!-- Controls -->
       <div class="controls" role="group" aria-label="Timer controls">
+        <button class="btn btn-secondary" id="resetBtn" aria-label="Reset timer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        </button>
         <button class="btn btn-primary" id="startBtn" aria-label="Start timer">
           <span class="btn-icon" aria-hidden="true">▶</span>
           <span class="btn-text">Start</span>
         </button>
-        <button class="btn btn-secondary" id="resetBtn" aria-label="Reset timer">
-          <span class="btn-icon" aria-hidden="true">↺</span>
-          <span class="btn-text">Reset</span>
-        </button>
         <button class="btn btn-secondary" id="skipBtn" aria-label="Skip to next mode">
-          <span class="btn-icon" aria-hidden="true">⏭</span>
-          <span class="btn-text">Skip</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
         </button>
       </div>
 
@@ -152,8 +173,7 @@
 
       <!-- Timer Presets -->
       <div class="presets-container">
-        <h3 class="presets-title">Quick Presets</h3>
-        <div class="presets-buttons">
+        <div class="presets-row">
           <button class="preset-btn" data-minutes="15" aria-label="Set timer to 15 minutes">15m</button>
           <button class="preset-btn active" data-minutes="25" aria-label="Set timer to 25 minutes">25m</button>
           <button class="preset-btn" data-minutes="45" aria-label="Set timer to 45 minutes">45m</button>
@@ -162,149 +182,166 @@
         <div class="custom-duration">
           <label for="customMinutes" class="visually-hidden">Custom duration in minutes</label>
           <input type="number" id="customMinutes" min="1" max="120" placeholder="Custom" aria-label="Custom duration in minutes">
-          <button class="btn btn-secondary btn-small" id="customDurationBtn" aria-label="Set custom duration">Set</button>
+          <button class="btn-set" id="customDurationBtn" aria-label="Set custom duration">Set</button>
         </div>
       </div>
     </section>
 
-    <!-- Task Management -->
-    <section class="tasks-section">
-      <h2 class="section-title">📋 Tasks</h2>
-      
-      <!-- Task Input -->
-      <div class="task-input-group">
-        <label for="newTaskInput" class="visually-hidden">Add a new task</label>
-        <input type="text" id="newTaskInput" placeholder="Add a new task..." maxlength="100" aria-label="New task">
-        <button class="btn btn-secondary btn-small" id="addTaskBtn" aria-label="Add task">Add</button>
-      </div>
-      
-      <!-- Task Controls -->
-      <div class="task-controls">
-        <!-- Sorting Controls -->
-        <div class="task-control-group">
-          <label class="task-control-label" for="taskSort">Sort by:</label>
-          <select id="taskSort" class="task-select" aria-label="Sort tasks">
-            <option value="original">Original Order</option>
-            <option value="status">Status</option>
-          </select>
+    <!-- Two-column grid for secondary sections -->
+    <div class="secondary-grid">
+      <!-- Task Management -->
+      <section class="tasks-section panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Tasks</h2>
+          <span class="panel-icon" aria-hidden="true">📋</span>
         </div>
-        
-        <!-- Filtering Controls -->
-        <div class="task-control-group">
-          <label class="task-control-label" for="taskFilter">Filter:</label>
-          <select id="taskFilter" class="task-select" aria-label="Filter tasks">
-            <option value="all">All Tasks</option>
-            <option value="completed">Completed Only</option>
-            <option value="pending">Pending Only</option>
-          </select>
-        </div>
-      </div>
-      
-      <!-- CSV Import/Export -->
-      <div class="task-csv-controls">
-        <button class="btn btn-secondary btn-small" id="exportCsvBtn" aria-label="Export tasks to CSV">
-          📥 Export CSV
-        </button>
-        <button class="btn btn-secondary btn-small" id="importCsvBtn" aria-label="Import tasks from CSV">
-          📤 Import CSV
-        </button>
-        <input type="file" id="csvFileInput" accept=".csv" class="visually-hidden" aria-label="Select CSV file">
-      </div>
-      
-      <!-- Task List -->
-      <ul class="task-list" id="taskList" role="list" aria-label="Task list"></ul>
-    </section>
 
-    <!-- Statistics Section -->
-    <section class="stats-section">
-      <h2 class="stats-title">📊 Today's Progress</h2>
-      <div class="stats-grid">
-        <div class="stat-item">
-          <div class="stat-value" id="statPomodoros" aria-label="Completed pomodoros">0</div>
-          <div class="stat-label">Pomodoros</div>
+        <!-- Task Input -->
+        <div class="task-input-group">
+          <label for="newTaskInput" class="visually-hidden">Add a new task</label>
+          <input type="text" id="newTaskInput" placeholder="What needs your focus?" maxlength="100" aria-label="New task">
+          <button class="btn-add" id="addTaskBtn" aria-label="Add task">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
         </div>
-        <div class="stat-item">
-          <div class="stat-value" id="statFocusTime" aria-label="Total focus time">0m</div>
-          <div class="stat-label">Focus Time</div>
+
+        <!-- Task Controls -->
+        <div class="task-controls">
+          <div class="task-control-group">
+            <label class="task-control-label" for="taskSort">Sort</label>
+            <select id="taskSort" class="task-select" aria-label="Sort tasks">
+              <option value="original">Original</option>
+              <option value="status">Status</option>
+            </select>
+          </div>
+          <div class="task-control-group">
+            <label class="task-control-label" for="taskFilter">Filter</label>
+            <select id="taskFilter" class="task-select" aria-label="Filter tasks">
+              <option value="all">All</option>
+              <option value="completed">Done</option>
+              <option value="pending">Pending</option>
+            </select>
+          </div>
         </div>
-        <div class="stat-item">
-          <div class="stat-value" id="statStreak" aria-label="Day streak">0</div>
-          <div class="stat-label">Day Streak</div>
+
+        <!-- CSV Import/Export -->
+        <div class="task-csv-controls">
+          <button class="btn-csv" id="exportCsvBtn" aria-label="Export tasks to CSV">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export
+          </button>
+          <button class="btn-csv" id="importCsvBtn" aria-label="Import tasks from CSV">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Import
+          </button>
+          <input type="file" id="csvFileInput" accept=".csv" class="visually-hidden" aria-label="Select CSV file">
         </div>
-      </div>
-    </section>
+
+        <!-- Task List -->
+        <ul class="task-list" id="taskList" role="list" aria-label="Task list"></ul>
+      </section>
+
+      <!-- Statistics Section -->
+      <section class="stats-section panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Today's Progress</h2>
+          <span class="panel-icon" aria-hidden="true">📊</span>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="statPomodoros" aria-label="Completed pomodoros">0</div>
+            <div class="stat-label">Pomodoros</div>
+            <div class="stat-bar" aria-hidden="true"><div class="stat-bar-fill" style="width: 0%"></div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statFocusTime" aria-label="Total focus time">0m</div>
+            <div class="stat-label">Focus Time</div>
+            <div class="stat-bar" aria-hidden="true"><div class="stat-bar-fill" style="width: 0%"></div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statStreak" aria-label="Day streak">0</div>
+            <div class="stat-label">Day Streak</div>
+            <div class="stat-bar" aria-hidden="true"><div class="stat-bar-fill" style="width: 0%"></div></div>
+          </div>
+        </div>
+      </section>
+    </div>
 
     <!-- Sound Settings -->
-    <section class="sound-section">
-      <h2 class="sound-title">🔔 Sound</h2>
+    <section class="sound-section panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Sound</h2>
+        <span class="panel-icon" aria-hidden="true">🔔</span>
+      </div>
       <div class="sound-controls">
-        <div class="sound-type-selector">
-          <label class="sound-label">Notification Sound</label>
-          <div class="sound-type-buttons">
-            <button class="sound-type-btn active" data-sound="chime" aria-pressed="true">🔔 Chime</button>
-            <button class="sound-type-btn" data-sound="bell" aria-pressed="false">🔕 Bell</button>
-            <button class="sound-type-btn" data-sound="digital" aria-pressed="false">📱 Digital</button>
-            <button class="sound-type-btn" data-sound="gentle" aria-pressed="false">🎵 Gentle</button>
-            <button class="sound-type-btn" data-sound="harp" aria-pressed="false">🎼 Harp</button>
-            <button class="sound-type-btn" data-sound="pulse" aria-pressed="false">🫧 Pulse</button>
-            <button class="sound-type-btn" data-sound="retro" aria-pressed="false">🕹️ Retro</button>
-            <button class="sound-type-btn" data-sound="wood" aria-pressed="false">🥁 Wood</button>
-          </div>
+        <div class="sound-type-grid">
+          <button class="sound-type-btn active" data-sound="chime" aria-pressed="true"><span class="btn-emoji">🔔</span> Chime</button>
+          <button class="sound-type-btn" data-sound="bell" aria-pressed="false"><span class="btn-emoji">🛎️</span> Bell</button>
+          <button class="sound-type-btn" data-sound="digital" aria-pressed="false"><span class="btn-emoji">📱</span> Digital</button>
+          <button class="sound-type-btn" data-sound="gentle" aria-pressed="false"><span class="btn-emoji">🎵</span> Gentle</button>
+          <button class="sound-type-btn" data-sound="harp" aria-pressed="false"><span class="btn-emoji">🎼</span> Harp</button>
+          <button class="sound-type-btn" data-sound="pulse" aria-pressed="false"><span class="btn-emoji">🫧</span> Pulse</button>
+          <button class="sound-type-btn" data-sound="retro" aria-pressed="false"><span class="btn-emoji">🕹️</span> Retro</button>
+          <button class="sound-type-btn" data-sound="wood" aria-pressed="false"><span class="btn-emoji">🥁</span> Wood</button>
         </div>
-        <div class="sound-option">
-          <div class="sound-label-row">
-            <label for="volumeSlider" class="sound-label">Volume</label>
-            <span class="volume-value" id="volumeValue" aria-live="polite">50%</span>
-          </div>
+        <div class="volume-row">
+          <svg class="volume-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
           <input type="range" id="volumeSlider" min="0" max="100" value="50" class="volume-slider" aria-label="Notification volume">
+          <span class="volume-value" id="volumeValue" aria-live="polite">50%</span>
         </div>
-        <button class="test-sound-btn" id="testSoundBtn" aria-label="Test notification sound">🎵 Test Sound</button>
+        <button class="test-sound-btn" id="testSoundBtn" aria-label="Test notification sound">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          Test Sound
+        </button>
       </div>
     </section>
 
     <!-- Theme Settings -->
-    <section class="theme-section">
-      <h2 class="theme-title">🎨 Theme & Effects</h2>
-      <div class="theme-buttons">
+    <section class="theme-section panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Theme & Effects</h2>
+        <span class="panel-icon" aria-hidden="true">🎨</span>
+      </div>
+      <div class="theme-grid">
         <button class="theme-option active" data-theme="forest" aria-label="Forest theme" aria-pressed="true">
-          <span class="theme-emoji" aria-hidden="true">🌲</span>
+          <span class="theme-emoji">🌲</span>
           <span class="theme-name">Forest</span>
         </button>
         <button class="theme-option" data-theme="ocean" aria-label="Ocean theme" aria-pressed="false">
-          <span class="theme-emoji" aria-hidden="true">🌊</span>
+          <span class="theme-emoji">🌊</span>
           <span class="theme-name">Ocean</span>
         </button>
         <button class="theme-option" data-theme="mountain" aria-label="Mountain theme" aria-pressed="false">
-          <span class="theme-emoji" aria-hidden="true">🏔️</span>
+          <span class="theme-emoji">🏔️</span>
           <span class="theme-name">Mountain</span>
         </button>
         <button class="theme-option" data-theme="space" aria-label="Space theme" aria-pressed="false">
-          <span class="theme-emoji" aria-hidden="true">🌌</span>
+          <span class="theme-emoji">🌌</span>
           <span class="theme-name">Space</span>
         </button>
         <button class="theme-option" data-theme="sunset" aria-label="Sunset theme" aria-pressed="false">
-          <span class="theme-emoji" aria-hidden="true">🌅</span>
+          <span class="theme-emoji">🌅</span>
           <span class="theme-name">Sunset</span>
         </button>
         <button class="theme-option" data-theme="cherry" aria-label="Cherry Blossom theme" aria-pressed="false">
-          <span class="theme-emoji" aria-hidden="true">🌸</span>
+          <span class="theme-emoji">🌸</span>
           <span class="theme-name">Cherry</span>
         </button>
         <button class="theme-option" data-theme="aurora" aria-label="Aurora theme" aria-pressed="false">
-          <span class="theme-emoji" aria-hidden="true">✨</span>
+          <span class="theme-emoji">✨</span>
           <span class="theme-name">Aurora</span>
         </button>
         <button class="theme-option" data-theme="desert" aria-label="Desert theme" aria-pressed="false">
-          <span class="theme-emoji" aria-hidden="true">🏜️</span>
+          <span class="theme-emoji">🏜️</span>
           <span class="theme-name">Desert</span>
         </button>
         <button class="theme-option" data-theme="midnight" aria-label="Midnight theme" aria-pressed="false">
-          <span class="theme-emoji" aria-hidden="true">🌑</span>
+          <span class="theme-emoji">🌑</span>
           <span class="theme-name">Midnight</span>
         </button>
       </div>
-      <div class="weather-selector">
-        <label class="sound-label">Weather Effect</label>
+      <div class="weather-row">
+        <span class="weather-label">Weather</span>
         <div class="weather-buttons">
           <button class="weather-btn active" data-weather="auto" aria-pressed="true">🌤️ Auto</button>
           <button class="weather-btn" data-weather="rain" aria-pressed="false">🌧️ Rain</button>
@@ -316,40 +353,51 @@
           <button class="weather-btn" data-weather="fireflies" aria-pressed="false">✨ Fireflies</button>
         </div>
       </div>
-      <div class="high-contrast-option">
+      <div class="toggle-row">
         <label class="toggle-label">
           <input type="checkbox" id="highContrastToggle" aria-label="Enable high contrast mode">
+          <span class="toggle-switch"></span>
           <span>High Contrast</span>
         </label>
       </div>
     </section>
 
     <!-- Advanced Options -->
-    <section class="options-section">
-      <h2 class="section-title">⚙️ Advanced Options</h2>
+    <section class="options-section panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Advanced</h2>
+        <span class="panel-icon" aria-hidden="true">⚙️</span>
+      </div>
       <div class="options-list" id="optionsList">
         <label class="toggle-label">
           <input type="checkbox" id="autoStartToggle">
+          <span class="toggle-switch"></span>
           <span>Auto-start next timer</span>
         </label>
         <label class="toggle-label">
           <input type="checkbox" id="skipBreaksToggle">
+          <span class="toggle-switch"></span>
           <span>Skip breaks</span>
         </label>
         <label class="toggle-label">
           <input type="checkbox" id="focusModeToggle">
-          <span>Focus Mode (hide non-essentials)</span>
+          <span class="toggle-switch"></span>
+          <span>Focus Mode</span>
         </label>
         <label class="toggle-label">
           <input type="checkbox" id="lowPowerToggle">
-          <span>Low Power Mode (30 FPS + fewer particles)</span>
+          <span class="toggle-switch"></span>
+          <span>Low Power Mode</span>
         </label>
       </div>
     </section>
 
     <!-- Quick Tips -->
-    <section class="tips-section">
-      <h2 class="tips-title">🌱 Quick Tips</h2>
+    <section class="tips-section panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Quick Tips</h2>
+        <span class="panel-icon" aria-hidden="true">🌱</span>
+      </div>
       <ul class="tips-list">
         <li>Grow one habit at a time</li>
         <li>Nurture your focus zone</li>
@@ -358,17 +406,26 @@
       </ul>
     </section>
   </main>
+
+  <footer class="footer">
+    <p>Pomodoro Prime — Designed for focus</p>
+  </footer>
 </div>
 
-<!-- Focus Mode Exit Button (visible only in focus mode) -->
-<button class="focus-exit-btn" id="focusExitBtn" aria-label="Exit focus mode">✕ Exit Focus</button>
+<!-- Focus Mode Exit Button -->
+<button class="focus-exit-btn" id="focusExitBtn" aria-label="Exit focus mode">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  Exit Focus
+</button>
 
 <!-- Onboarding Modal -->
 <div class="modal" id="onboardingModal" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle" aria-hidden="true">
   <div class="modal-content">
     <div class="modal-header">
-      <h2 class="modal-title" id="onboardingTitle">Welcome to Pomodoro Prime! 🌲</h2>
-      <button class="modal-close" id="closeOnboarding" aria-label="Close welcome message">✕</button>
+      <h2 class="modal-title" id="onboardingTitle">Welcome to Pomodoro Prime</h2>
+      <button class="modal-close" id="closeOnboarding" aria-label="Close welcome message">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
     <div class="modal-body">
       <p class="modal-text">Your journey to focused productivity starts here:</p>
@@ -391,7 +448,7 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-primary" id="startJourneyBtn">Start My Journey</button>
+        <button class="btn btn-primary btn-start-journey" id="startJourneyBtn">Start My Journey</button>
       </div>
     </div>
   </div>
@@ -401,8 +458,10 @@
 <div class="modal" id="shortcutsModal" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle" aria-hidden="true">
   <div class="modal-content">
     <div class="modal-header">
-      <h2 class="modal-title" id="shortcutsTitle">⌨️ Keyboard Shortcuts</h2>
-      <button class="modal-close" id="closeShortcuts" aria-label="Close shortcuts">✕</button>
+      <h2 class="modal-title" id="shortcutsTitle">Keyboard Shortcuts</h2>
+      <button class="modal-close" id="closeShortcuts" aria-label="Close shortcuts">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
     <div class="modal-body">
       <div class="shortcuts-list">
