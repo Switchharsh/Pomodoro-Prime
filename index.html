@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="description" content="An ADHD-friendly Pomodoro timer with celestial animations, multiple themes, and task management. Stay focused, take breaks, repeat.">
+<meta name="description" content="A Pomodoro timer with celestial animations, multiple themes, and task management. Stay focused, take breaks, repeat.">
 <meta name="theme-color" id="metaThemeColor" content="#2D5A27">
 
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌲</text></svg>">
@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="Pomodoro Prime">
 
 <meta property="og:title" content="Pomodoro Prime - Forest Focus Timer">
-<meta property="og:description" content="An ADHD-friendly Pomodoro timer with celestial animations and multiple themes.">
+<meta property="og:description" content="A Pomodoro timer with celestial animations and multiple themes.">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Pomodoro Prime">
@@ -62,6 +62,18 @@
     <!-- Timer Display -->
     <section class="timer-section" aria-live="polite">
       <div class="timer-type-badge" id="timerType" role="status">Focus</div>
+      <button class="breathe-start-btn" id="breatheStartBtn" aria-label="Start breathing exercise">
+        <span aria-hidden="true">🫁</span>
+        <span>Breathe</span>
+      </button>
+
+      <!-- Session Intention -->
+      <div class="intention-wrap" id="intentionWrap">
+        <select id="intentionSelect" class="intention-select" aria-label="Select a task to focus on">
+          <option value="">What are you working on?</option>
+        </select>
+        <div class="intention-banner" id="intentionBanner" aria-live="polite" hidden></div>
+      </div>
 
       <!-- Ring with countdown centered inside -->
       <div class="timer-visual">
@@ -108,6 +120,11 @@
           <!-- Timer display centered in ring -->
           <div class="timer-center">
             <div class="timer-display" id="timerDisplay" aria-label="Time remaining">25:00</div>
+            <!-- Breathing Guide (breaks only) -->
+            <div class="breathing-guide" id="breathingGuide" hidden aria-label="Breathing guide">
+              <div class="breathing-circle" id="breathingCircle"></div>
+              <div class="breathing-phase" id="breathingPhase" aria-live="polite">Inhale</div>
+            </div>
           </div>
         </div>
       </div>
@@ -155,6 +172,31 @@
         </button>
       </div>
 
+      <!-- Distraction Quick-Log -->
+      <div class="distraction-wrap" id="distractionWrap">
+        <button class="btn btn-secondary distraction-btn" id="distractionBtn" aria-label="Log a distraction">
+          <span aria-hidden="true">🧠</span>
+          <span class="btn-text">Distracted</span>
+          <span class="distraction-count" id="distractionCount" hidden>0</span>
+        </button>
+        <div class="distraction-panel" id="distractionPanel" hidden>
+          <div class="distraction-categories" role="group" aria-label="Common distractions">
+            <button class="distraction-cat-btn" data-category="phone">📱 Phone</button>
+            <button class="distraction-cat-btn" data-category="social">💬 Social</button>
+            <button class="distraction-cat-btn" data-category="email">📧 Email</button>
+            <button class="distraction-cat-btn" data-category="thoughts">💭 Thoughts</button>
+          </div>
+          <div class="distraction-custom">
+            <input type="text" id="distractionText" class="distraction-input"
+              placeholder="What distracted you?" maxlength="100" aria-label="Describe distraction">
+            <button class="btn-add distraction-add-btn" id="distractionAddBtn" aria-label="Log distraction">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="distraction-session-note" id="distractionSessionNote" hidden role="status" aria-live="polite"></div>
+      </div>
+
       <!-- Mode Toggle -->
       <div class="mode-toggle" role="tablist" aria-label="Timer mode">
         <button class="mode-btn active" data-mode="focus" role="tab" aria-selected="true">
@@ -173,6 +215,10 @@
 
       <!-- Timer Presets -->
       <div class="presets-container">
+        <div class="preset-styles">
+          <button class="preset-style-btn active" data-style="classic" aria-label="Classic pomodoro 25/5/15">Classic 25/5</button>
+          <button class="preset-style-btn" data-style="extended" aria-label="Extended pomodoro 50/10/30">50/10/30</button>
+        </div>
         <div class="presets-row">
           <button class="preset-btn" data-minutes="15" aria-label="Set timer to 15 minutes">15m</button>
           <button class="preset-btn active" data-minutes="25" aria-label="Set timer to 25 minutes">25m</button>
@@ -180,8 +226,9 @@
           <button class="preset-btn" data-minutes="60" aria-label="Set timer to 60 minutes">60m</button>
         </div>
         <div class="custom-duration">
+          <span class="custom-duration-label">Custom</span>
           <label for="customMinutes" class="visually-hidden">Custom duration in minutes</label>
-          <input type="number" id="customMinutes" min="1" max="120" placeholder="Custom" aria-label="Custom duration in minutes">
+          <input type="number" id="customMinutes" min="1" max="120" placeholder="Min" aria-label="Custom duration in minutes">
           <button class="btn-set" id="customDurationBtn" aria-label="Set custom duration">Set</button>
         </div>
       </div>
@@ -189,7 +236,7 @@
 
     <!-- Two-column grid for secondary sections -->
     <div class="secondary-grid">
-      <!-- Task Management -->
+      <!-- Task Management (full width) -->
       <section class="tasks-section panel">
         <div class="panel-header">
           <h2 class="panel-title">Tasks</h2>
@@ -241,6 +288,34 @@
         <ul class="task-list" id="taskList" role="list" aria-label="Task list"></ul>
       </section>
 
+      <!-- Distraction Patterns -->
+      <section class="distractions-section panel" id="distractionsPanelSection">
+        <div class="panel-header">
+          <h2 class="panel-title">Distractions</h2>
+          <span class="panel-icon" aria-hidden="true">🧠</span>
+        </div>
+        <div class="distraction-kpis" id="distractionKpis">
+          <div class="distraction-kpi">
+            <div class="distraction-kpi-value" id="distractionTotal">0</div>
+            <div class="distraction-kpi-label">Total</div>
+          </div>
+          <div class="distraction-kpi">
+            <div class="distraction-kpi-value" id="distractionTopCategory">—</div>
+            <div class="distraction-kpi-label">Top Trigger</div>
+          </div>
+          <div class="distraction-kpi">
+            <div class="distraction-kpi-value" id="distractionTodayCount">0</div>
+            <div class="distraction-kpi-label">Today</div>
+          </div>
+        </div>
+        <div class="distraction-summary" id="distractionSummary">
+          <p class="distraction-empty">No distractions logged yet.</p>
+        </div>
+        <button class="btn-csv" id="clearDistractionsBtn" aria-label="Clear all distraction logs">
+          Clear Log
+        </button>
+      </section>
+
       <!-- Statistics Section -->
       <section class="stats-section panel">
         <div class="panel-header">
@@ -283,6 +358,13 @@
           <button class="sound-type-btn" data-sound="pulse" aria-pressed="false"><span class="btn-emoji">🫧</span> Pulse</button>
           <button class="sound-type-btn" data-sound="retro" aria-pressed="false"><span class="btn-emoji">🕹️</span> Retro</button>
           <button class="sound-type-btn" data-sound="wood" aria-pressed="false"><span class="btn-emoji">🥁</span> Wood</button>
+          <button class="sound-type-btn" data-sound="lightning" aria-pressed="false"><span class="btn-emoji">⚡</span> Lightning</button>
+          <button class="sound-type-btn" data-sound="bird" aria-pressed="false"><span class="btn-emoji">🐦</span> Bird</button>
+          <button class="sound-type-btn" data-sound="guitar" aria-pressed="false"><span class="btn-emoji">🎸</span> Guitar String</button>
+          <button class="sound-type-btn" data-sound="flute" aria-pressed="false"><span class="btn-emoji">🪈</span> Flute</button>
+          <button class="sound-type-btn" data-sound="mouthorgan" aria-pressed="false"><span class="btn-emoji">🎹</span> Mouth Organ</button>
+          <button class="sound-type-btn" data-sound="whitenoise" aria-pressed="false"><span class="btn-emoji">〰️</span> White Noise</button>
+          <button class="sound-type-btn" data-sound="beach" aria-pressed="false"><span class="btn-emoji">🌊</span> Beach</button>
         </div>
         <div class="volume-row">
           <svg class="volume-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
@@ -389,6 +471,16 @@
           <span class="toggle-switch"></span>
           <span>Low Power Mode</span>
         </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="breathingGuideToggle">
+          <span class="toggle-switch"></span>
+          <span>Breathing Guide (breaks)</span>
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="noAnimationToggle">
+          <span class="toggle-switch"></span>
+          <span>No Animations</span>
+        </label>
       </div>
     </section>
 
@@ -405,6 +497,7 @@
         <li>Breathe deep like the forest</li>
       </ul>
     </section>
+
   </main>
 
   <footer class="footer">
@@ -418,9 +511,22 @@
   Exit Focus
 </button>
 
+<!-- Standalone Breathing Overlay -->
+<div class="breathing-overlay" id="breathingOverlay" hidden>
+  <div class="breathing-overlay-content">
+    <div class="breathing-overlay-title">4-7-8 Breathing</div>
+    <div class="breathing-overlay-phase" id="breathingOverlayPhase">Get Ready</div>
+    <div class="breathing-overlay-circle-wrap">
+      <div class="breathing-overlay-circle" id="breathingOverlayCircle"></div>
+    </div>
+    <div class="breathing-overlay-counter" id="breathingOverlayCounter">3 cycles</div>
+    <button class="btn btn-primary breathing-stop-btn" id="breathingStopBtn">Stop</button>
+  </div>
+</div>
+
 <!-- Onboarding Modal -->
 <div class="modal" id="onboardingModal" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle" aria-hidden="true">
-  <div class="modal-content">
+  <div class="modal-content onboarding-content">
     <div class="modal-header">
       <h2 class="modal-title" id="onboardingTitle">Welcome to Pomodoro Prime</h2>
       <button class="modal-close" id="closeOnboarding" aria-label="Close welcome message">
@@ -428,27 +534,59 @@
       </button>
     </div>
     <div class="modal-body">
-      <p class="modal-text">Your journey to focused productivity starts here:</p>
-      <div class="onboarding-steps">
-        <div class="step">
-          <span class="step-number">1</span>
-          <p class="step-text">Choose focus time and click <strong>Start</strong></p>
+      <p class="modal-text">Your focus companion. Work in focused blocks, track distractions, and build a streak.</p>
+
+      <div class="onboarding-features">
+        <div class="feature-card">
+          <span class="feature-icon" aria-hidden="true">🌳</span>
+          <div class="feature-info">
+            <strong>Pomodoro Timer</strong>
+            <span>25 min focus + 5 min break cycles. Watch the sun and moon cross the sky as you work.</span>
+          </div>
         </div>
-        <div class="step">
-          <span class="step-number">2</span>
-          <p class="step-text">Work until timer ends (watch the sun/moon cycle!)</p>
+        <div class="feature-card">
+          <span class="feature-icon" aria-hidden="true">📋</span>
+          <div class="feature-info">
+            <strong>Task Tracking</strong>
+            <span>Add tasks, pick one to focus on, and check them off as you go.</span>
+          </div>
         </div>
-        <div class="step">
-          <span class="step-number">3</span>
-          <p class="step-text">Take a short break, then repeat</p>
+        <div class="feature-card">
+          <span class="feature-icon" aria-hidden="true">🧠</span>
+          <div class="feature-info">
+            <strong>Distraction Log</strong>
+            <span>Quick-tap when distracted. Review patterns to find your focus triggers.</span>
+          </div>
         </div>
-        <div class="step">
-          <span class="step-number">4</span>
-          <p class="step-text">After 4 pomodoros, enjoy a long break!</p>
+        <div class="feature-card">
+          <span class="feature-icon" aria-hidden="true">🫁</span>
+          <div class="feature-info">
+            <strong>Breathing Guide</strong>
+            <span>4-7-8 breathing exercise. Use anytime to calm your mind.</span>
+          </div>
         </div>
       </div>
+
+      <div class="onboarding-quickstart">
+        <h3>Quick Start</h3>
+        <div class="onboarding-steps">
+          <div class="step">
+            <span class="step-number">1</span>
+            <p class="step-text">Add tasks in the Tasks panel</p>
+          </div>
+          <div class="step">
+            <span class="step-number">2</span>
+            <p class="step-text">Pick a task in the topic dropdown and click <strong>Start</strong></p>
+          </div>
+          <div class="step">
+            <span class="step-number">3</span>
+            <p class="step-text">Focus until the timer ends, then take a break</p>
+          </div>
+        </div>
+      </div>
+
       <div class="modal-footer">
-        <button class="btn btn-primary btn-start-journey" id="startJourneyBtn">Start My Journey</button>
+        <button class="btn btn-primary btn-start-journey" id="startJourneyBtn">Let's Focus!</button>
       </div>
     </div>
   </div>
@@ -488,6 +626,10 @@
         <div class="shortcut-item">
           <kbd class="key">Esc</kbd>
           <span class="shortcut-desc">Close modals / Exit focus mode</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd class="key">D</kbd>
+          <span class="shortcut-desc">Log distraction (during focus)</span>
         </div>
       </div>
     </div>

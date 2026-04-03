@@ -14,7 +14,7 @@ A super lite, distraction-free Pomodoro timer for focused work sessions. Built f
 
 - **Task Input**: Simple text field for current task (session-only, no persistence)
 
-- **ADHD-Friendly Design**:
+- **Focus-Friendly Design**:
   - Clean, minimal interface
   - High contrast colors
   - Large touch targets (buttons)
@@ -58,7 +58,7 @@ Pomodoro-Prime/
 - `Space` or `Enter`: Start/Pause timer
 - `R`: Reset timer
 
-## ADHD-Friendly Features
+## Focus-Friendly Features
 
 - **Large Buttons**: Easy to tap, clear visual hierarchy
 - **High Contrast**: Green for focus, blue for breaks, white text

@@ -1,7 +1,7 @@
 // Pomodoro Prime - Service Worker
 // Cache-first strategy for offline support on GitHub Pages
 
-const CACHE_NAME = 'pomodoro-prime-v3';
+const CACHE_NAME = 'pomodoro-prime-v4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

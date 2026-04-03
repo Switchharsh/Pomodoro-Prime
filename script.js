@@ -1,6 +1,6 @@
 // Pomodoro Prime - Enhanced JavaScript (Optimized)
 // Features: Celestial animation, weather effects, multiple sounds, focus mode
-// ADHD-friendly: Simple, focused, minimal distractions
+// Simple, focused, minimal distractions
 
 // ==================== STATE MANAGEMENT ====================
 let timerState = {
@@ -34,7 +34,7 @@ let weatherCycleIndex = 0;
 
 const ALLOWED_WEATHER_MODES = ['auto', 'rain', 'snow', 'blossom', 'meteor', 'mist', 'breeze', 'fireflies'];
 const AUTO_WEATHER_SEQUENCE = ['rain', 'snow', 'blossom', 'meteor', 'breeze'];
-const ALLOWED_SOUND_TYPES = ['chime', 'bell', 'digital', 'gentle', 'harp', 'pulse', 'retro', 'wood'];
+const ALLOWED_SOUND_TYPES = ['chime', 'bell', 'digital', 'gentle', 'harp', 'pulse', 'retro', 'wood', 'lightning', 'bird', 'metal', 'guitar', 'flute', 'mouthorgan', 'whitenoise', 'beach'];
 
 // OPTIMIZATION: Debounce timeout for localStorage saves
 let saveTimeout = null;
@@ -43,10 +43,22 @@ let options = {
   autoStart: false,
   skipBreaks: false,
   focusMode: false,
-  lowPowerMode: false
+  lowPowerMode: false,
+  breathingGuide: false,
+  noAnimation: false,
+  pomodoroStyle: 'classic'
 };
 
 let tasks = [];
+let distractions = [];
+let lastIntention = null;
+let currentSessionDistractions = 0;
+
+// Standalone breathing state
+let isBreathingStandalone = false;
+let breathingStandaloneInterval = null;
+let breathingStandaloneTimeout = null;
+let breathingCycleCount = 0;
 
 // Task View State (Sorting and Filtering)
 let taskViewState = {
@@ -58,6 +70,10 @@ const DURATIONS = {
   focus: 25 * 60 * 1000,
   short: 5 * 60 * 1000,
   long: 15 * 60 * 1000
+};
+const DURATION_PRESETS = {
+  classic: { focus: 25, short: 5, long: 15 },
+  extended: { focus: 50, short: 10, long: 30 }
 };
 
 // ==================== DOM ELEMENTS ====================
@@ -76,13 +92,26 @@ let highContrastToggle, themeOptions, focusModeToggle, lowPowerToggle, volumeVal
 let focusExitBtn;
 let soundTypeBtns, weatherBtns;
 let audioContext;
+// New features
+let timerSection;
+let intentionInput, intentionBanner, intentionWrap;
+let intentionSelect;
+let distractionBtn, distractionPanel, distractionText, distractionAddBtn;
+let distractionCount, distractionSessionNote;
+let distractionSummary, clearDistractionsBtn;
+let distractionTotal, distractionTopCategory, distractionTodayCount;
+let breathingGuide, breathingCircle, breathingPhase;
+let breathingGuideToggle;
+let breatheStartBtn, breathingOverlay, breathingOverlayCircle, breathingOverlayPhase, breathingOverlayCounter, breathingStopBtn;
+let onboardingTaskInput, onboardingAddTaskBtn, onboardingTaskList;
+let noAnimationToggle, presetStyleBtns;
 let particlesCanvas, particlesCtx, particles = [];
 let skyCanvas, skyCtx, stars = [];
 let celestialBody, celestialCircle, celestialGlowEffect, timerSkyGradient;
 // OPTIMIZATION: Single animation loop ID instead of two separate loops
 let animationFrameId = null;
 let lastRenderTime = 0;
-let targetAnimationFps = 40;
+let targetAnimationFps = 30;
 let animationFrameInterval = 1000 / targetAnimationFps;
 // OPTIMIZATION: Cached timer stars DOM element
 let timerStarsElement = null;
@@ -213,7 +242,9 @@ function saveToStorage() {
         weatherCycleIndex,
         options,
         tasks,
-        taskViewState
+        taskViewState,
+        distractions: distractions,
+        lastIntention: lastIntention
       };
       localStorage.setItem('pomodoroPrimeData', JSON.stringify(data));
     } catch (e) {
@@ -245,6 +276,8 @@ function loadFromStorage() {
       if (data.options) options = { ...options, ...data.options };
       if (data.tasks) tasks = data.tasks;
       if (data.taskViewState) taskViewState = { ...taskViewState, ...data.taskViewState };
+      if (data.distractions) distractions = data.distractions;
+      if (data.lastIntention !== undefined) lastIntention = data.lastIntention;
     }
     const hasVisited = localStorage.getItem('pomodoroPrimeVisited');
     if (!ALLOWED_SOUND_TYPES.includes(soundSettings.soundType)) {
@@ -316,6 +349,38 @@ function initDOM() {
   celestialCircle = document.getElementById('celestialCircle');
   celestialGlowEffect = document.getElementById('celestialGlowEffect');
   timerSkyGradient = document.getElementById('timerSkyGradient');
+  // New features
+  timerSection = document.querySelector('.timer-section');
+  intentionInput = null; // removed from HTML
+  intentionBanner = document.getElementById('intentionBanner');
+  intentionWrap = document.getElementById('intentionWrap');
+  intentionSelect = document.getElementById('intentionSelect');
+  distractionBtn = document.getElementById('distractionBtn');
+  distractionPanel = document.getElementById('distractionPanel');
+  distractionText = document.getElementById('distractionText');
+  distractionAddBtn = document.getElementById('distractionAddBtn');
+  distractionCount = document.getElementById('distractionCount');
+  distractionSessionNote = document.getElementById('distractionSessionNote');
+  distractionSummary = document.getElementById('distractionSummary');
+  clearDistractionsBtn = document.getElementById('clearDistractionsBtn');
+  distractionTotal = document.getElementById('distractionTotal');
+  distractionTopCategory = document.getElementById('distractionTopCategory');
+  distractionTodayCount = document.getElementById('distractionTodayCount');
+  breathingGuide = document.getElementById('breathingGuide');
+  breathingCircle = document.getElementById('breathingCircle');
+  breathingPhase = document.getElementById('breathingPhase');
+  breathingGuideToggle = document.getElementById('breathingGuideToggle');
+  breatheStartBtn = document.getElementById('breatheStartBtn');
+  breathingOverlay = document.getElementById('breathingOverlay');
+  breathingOverlayCircle = document.getElementById('breathingOverlayCircle');
+  breathingOverlayPhase = document.getElementById('breathingOverlayPhase');
+  breathingOverlayCounter = document.getElementById('breathingOverlayCounter');
+  breathingStopBtn = document.getElementById('breathingStopBtn');
+  onboardingTaskInput = document.getElementById('onboardingTaskInput');
+  onboardingAddTaskBtn = document.getElementById('onboardingAddTaskBtn');
+  onboardingTaskList = document.getElementById('onboardingTaskList');
+  noAnimationToggle = document.getElementById('noAnimationToggle');
+  presetStyleBtns = document.querySelectorAll('.preset-style-btn');
 }
 
 // ==================== UTILITY FUNCTIONS ====================
@@ -465,6 +530,7 @@ function updateTimerType() {
   timerType.textContent = typeLabels[timerState.mode];
   progressBar.setAttribute('data-mode', timerState.mode);
   timerType.setAttribute('data-mode', timerState.mode);
+  if (timerSection) timerSection.setAttribute('data-timer-mode', timerState.mode);
 }
 
 function updateButtons() {
@@ -500,6 +566,283 @@ function updateThemeColors() {
   document.documentElement.style.setProperty('--color-focus-glow', `rgba(${r}, ${g}, ${b}, 0.25)`);
 }
 
+// ==================== SESSION INTENTION ====================
+function updateIntentionDropdown() {
+  if (!intentionSelect) return;
+  const currentVal = intentionSelect.value;
+  const incompleteTasks = tasks.filter(t => !t.completed);
+
+  intentionSelect.innerHTML = '<option value="">What are you working on?</option>';
+  incompleteTasks.forEach(task => {
+    const opt = document.createElement('option');
+    opt.value = task.text;
+    opt.textContent = task.text;
+    intentionSelect.appendChild(opt);
+  });
+
+  // Restore previous selection if still valid
+  if (currentVal && intentionSelect.querySelector(`option[value="${CSS.escape(currentVal)}"]`)) {
+    intentionSelect.value = currentVal;
+  }
+}
+
+function showIntentionBanner() {
+  if (!intentionSelect || !intentionBanner) return;
+
+  if (intentionSelect.value) {
+    lastIntention = intentionSelect.value;
+  }
+
+  if (lastIntention) {
+    intentionSelect.hidden = true;
+    intentionBanner.textContent = lastIntention;
+    intentionBanner.hidden = false;
+  }
+  saveToStorage();
+}
+
+function hideIntentionBanner() {
+  if (!intentionSelect || !intentionBanner) return;
+  intentionSelect.hidden = false;
+  intentionBanner.hidden = true;
+}
+
+function clearIntention() {
+  lastIntention = null;
+  if (intentionSelect) intentionSelect.value = '';
+  if (intentionBanner) { intentionBanner.textContent = ''; intentionBanner.hidden = true; }
+  if (intentionSelect) intentionSelect.hidden = false;
+  saveToStorage();
+}
+
+// ==================== DISTRACTION LOG ====================
+function logDistraction(text, category) {
+  distractions.push({
+    text: text,
+    timestamp: Date.now(),
+    sessionIntention: lastIntention,
+    category: category
+  });
+  // Cap at 200 entries
+  if (distractions.length > 200) distractions = distractions.slice(-200);
+  currentSessionDistractions++;
+  updateDistractionCount();
+  renderDistractionSummary();
+  saveToStorage();
+}
+
+function updateDistractionCount() {
+  if (!distractionCount || !distractionSessionNote) return;
+  if (currentSessionDistractions > 0) {
+    distractionCount.textContent = currentSessionDistractions;
+    distractionCount.hidden = false;
+    distractionSessionNote.textContent =
+      `${currentSessionDistractions} distraction${currentSessionDistractions > 1 ? 's' : ''} this session`;
+    distractionSessionNote.hidden = false;
+  } else {
+    distractionCount.hidden = true;
+    distractionSessionNote.hidden = true;
+  }
+}
+
+function toggleDistractionPanel() {
+  if (!distractionPanel) return;
+  distractionPanel.hidden = !distractionPanel.hidden;
+  if (!distractionPanel.hidden && distractionText) distractionText.focus();
+}
+
+function renderDistractionSummary() {
+  if (!distractionSummary) return;
+  updateDistractionKPIs();
+  if (distractions.length === 0) {
+    distractionSummary.innerHTML =
+      '<p class="distraction-empty">No distractions logged yet. Stay focused!</p>';
+    return;
+  }
+  const catLabels = { phone: 'Phone', social: 'Social', email: 'Email', thoughts: 'Thoughts', other: 'Other' };
+  const freq = {};
+  distractions.forEach(d => { freq[d.category] = (freq[d.category] || 0) + 1; });
+  let html = '<div class="distraction-freq">';
+  Object.entries(freq).sort((a, b) => b[1] - a[1]).forEach(([cat, count]) => {
+    html += `<span class="distraction-freq-item">${catLabels[cat] || cat}: ${count}</span>`;
+  });
+  html += '</div>';
+  const recent = distractions.slice(-20).reverse();
+  html += '<ul class="distraction-list">';
+  recent.forEach(d => {
+    const time = new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    html += `<li class="distraction-entry">
+      <span class="distraction-entry-time">${time}</span>
+      <span class="distraction-entry-text">${escapeHtml(d.text)}</span>
+    </li>`;
+  });
+  html += '</ul>';
+  distractionSummary.innerHTML = html;
+}
+
+function clearDistractions() {
+  distractions = [];
+  renderDistractionSummary();
+  updateDistractionKPIs();
+  saveToStorage();
+}
+
+function updateDistractionKPIs() {
+  if (!distractionTotal) return;
+
+  distractionTotal.textContent = distractions.length;
+
+  // Most common category
+  if (distractions.length > 0) {
+    const catLabels = { phone: '📱 Phone', social: '💬 Social', email: '📧 Email', thoughts: '💭 Thoughts', other: '🔤 Other' };
+    const freq = {};
+    distractions.forEach(d => { freq[d.category] = (freq[d.category] || 0) + 1; });
+    const topCat = Object.entries(freq).sort((a, b) => b[1] - a[1])[0];
+    distractionTopCategory.textContent = catLabels[topCat[0]] || topCat[0];
+  } else {
+    distractionTopCategory.textContent = '—';
+  }
+
+  // Today's count
+  const today = new Date().toDateString();
+  const todayCount = distractions.filter(d => new Date(d.timestamp).toDateString() === today).length;
+  distractionTodayCount.textContent = todayCount;
+}
+
+// ==================== BREATHING GUIDE ====================
+let breathingInterval = null;
+
+function startBreathingGuide() {
+  if (!options.breathingGuide || !breathingGuide || !breathingCircle) return;
+  if (timerState.mode === 'focus') { stopBreathingGuide(); return; }
+  breathingGuide.hidden = false;
+  // Reset CSS animation to sync with JS
+  breathingCircle.style.animation = 'none';
+  void breathingCircle.offsetHeight; // force reflow
+  breathingCircle.style.animation = '';
+  breathingCircle.style.animationPlayState = 'running';
+  let phaseTime = 0;
+  if (breathingPhase) breathingPhase.textContent = 'Inhale';
+  if (breathingInterval) clearInterval(breathingInterval);
+  breathingInterval = setInterval(() => {
+    phaseTime = (phaseTime + 0.5) % 19;
+    if (!breathingPhase) return;
+    if (phaseTime < 4) breathingPhase.textContent = 'Inhale';
+    else if (phaseTime < 11) breathingPhase.textContent = 'Hold';
+    else breathingPhase.textContent = 'Exhale';
+  }, 500);
+}
+
+function stopBreathingGuide() {
+  if (breathingGuide) breathingGuide.hidden = true;
+  if (breathingCircle) breathingCircle.style.animationPlayState = 'paused';
+  if (breathingPhase) breathingPhase.textContent = '';
+  if (breathingInterval) { clearInterval(breathingInterval); breathingInterval = null; }
+}
+
+// ==================== STANDALONE BREATHING EXERCISE ====================
+function startStandaloneBreathing() {
+  if (isBreathingStandalone) return;
+  isBreathingStandalone = true;
+  breathingCycleCount = 0;
+  const totalCycles = 3;
+
+  if (breathingOverlay) breathingOverlay.hidden = false;
+  if (breathingOverlayCounter) breathingOverlayCounter.textContent = `Cycle 1 of ${totalCycles}`;
+
+  // Stop canvas animations while breathing
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+  if (particlesCtx) {
+    particlesCtx.clearRect(0, 0, particlesCanvas.width, particlesCanvas.height);
+  }
+  if (skyCtx) {
+    skyCtx.clearRect(0, 0, skyCanvas.width, skyCanvas.height);
+  }
+
+  runBreathingCycle(totalCycles);
+}
+
+function runBreathingCycle(totalCycles) {
+  let phaseTime = 0; // in half-seconds
+  let currentPhase = 'inhale';
+
+  if (breathingStandaloneInterval) clearInterval(breathingStandaloneInterval);
+
+  // Inhale: 4s, Hold: 7s, Exhale: 8s = 19s total
+  setBreathingOverlayPhase(currentPhase);
+
+  breathingStandaloneInterval = setInterval(() => {
+    phaseTime += 0.5;
+
+    let nextPhase = currentPhase;
+    if (phaseTime <= 4) {
+      nextPhase = 'inhale';
+    } else if (phaseTime <= 11) {
+      nextPhase = 'hold';
+    } else if (phaseTime <= 19) {
+      nextPhase = 'exhale';
+    }
+
+    if (nextPhase !== currentPhase) {
+      currentPhase = nextPhase;
+      setBreathingOverlayPhase(currentPhase);
+    }
+
+    if (phaseTime >= 19) {
+      clearInterval(breathingStandaloneInterval);
+      breathingStandaloneInterval = null;
+      breathingCycleCount++;
+
+      if (breathingCycleCount < totalCycles) {
+        if (breathingOverlayCounter) breathingOverlayCounter.textContent = `Cycle ${breathingCycleCount + 1} of ${totalCycles}`;
+        setTimeout(() => runBreathingCycle(totalCycles), 500);
+      } else {
+        // Exercise complete
+        if (breathingOverlayPhase) breathingOverlayPhase.textContent = 'Done!';
+        if (breathingOverlayCircle) {
+          breathingOverlayCircle.className = 'breathing-overlay-circle';
+        }
+        breathingStandaloneTimeout = setTimeout(() => stopStandaloneBreathing(), 2000);
+      }
+    }
+  }, 500);
+}
+
+function setBreathingOverlayPhase(phase) {
+  if (!breathingOverlayCircle || !breathingOverlayPhase) return;
+  const labels = { inhale: 'Inhale', hold: 'Hold', exhale: 'Exhale' };
+  breathingOverlayCircle.className = 'breathing-overlay-circle ' + phase;
+  breathingOverlayPhase.textContent = labels[phase] || '';
+}
+
+function stopStandaloneBreathing() {
+  isBreathingStandalone = false;
+  if (breathingStandaloneInterval) { clearInterval(breathingStandaloneInterval); breathingStandaloneInterval = null; }
+  if (breathingStandaloneTimeout) { clearTimeout(breathingStandaloneTimeout); breathingStandaloneTimeout = null; }
+
+  if (breathingOverlay) breathingOverlay.hidden = true;
+  if (breathingOverlayCircle) breathingOverlayCircle.className = 'breathing-overlay-circle';
+  if (breathingOverlayPhase) breathingOverlayPhase.textContent = 'Get Ready';
+
+  // Resume canvas animations
+  lastRenderTime = 0;
+  if (!animationFrameId) animateCombined();
+}
+
+// ==================== TIMER SECTION STATE ====================
+function setTimerRunning(running) {
+  if (!timerSection) return;
+  if (running) {
+    timerSection.setAttribute('data-running', 'true');
+    timerSection.setAttribute('data-timer-mode', timerState.mode);
+  } else {
+    timerSection.removeAttribute('data-running');
+  }
+}
+
 // ==================== AUDIO FUNCTIONS ====================
 function ensureAudioContext() {
   if (!audioContext) {
@@ -526,14 +869,22 @@ function playAlarm() {
     ensureAudioContext();
     const vol = soundSettings.volume;
     switch (soundSettings.soundType) {
-      case 'harp':    playHarp(vol); break;
-      case 'pulse':   playPulse(vol); break;
-      case 'retro':   playRetro(vol); break;
-      case 'wood':    playWood(vol); break;
-      case 'bell':    playBell(vol); break;
-      case 'digital': playDigital(vol); break;
-      case 'gentle':  playGentle(vol); break;
-      default:        playChime(vol); break;
+      case 'harp':      playHarp(vol); break;
+      case 'pulse':     playPulse(vol); break;
+      case 'retro':     playRetro(vol); break;
+      case 'wood':      playWood(vol); break;
+      case 'bell':      playBell(vol); break;
+      case 'digital':   playDigital(vol); break;
+      case 'gentle':    playGentle(vol); break;
+      case 'lightning': playLightning(vol); break;
+      case 'bird':      playBird(vol); break;
+      case 'metal':     playMetal(vol); break;
+      case 'guitar':    playGuitarString(vol); break;
+      case 'flute':     playFlute(vol); break;
+      case 'mouthorgan': playMouthOrgan(vol); break;
+      case 'whitenoise': playWhiteNoise(vol); break;
+      case 'beach':     playBeach(vol); break;
+      default:          playChime(vol); break;
     }
   } catch (e) {
     console.log('Audio play error:', e);
@@ -705,6 +1056,222 @@ function playWood(volume) {
   });
 }
 
+function playLightning(volume) {
+  const t = audioContext.currentTime;
+  // White noise burst for thunder
+  const bufferSize = audioContext.sampleRate * 0.8;
+  const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+  }
+  const noise = audioContext.createBufferSource();
+  noise.buffer = buffer;
+  const noiseGain = audioContext.createGain();
+  const filter = audioContext.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(300, t);
+  filter.frequency.exponentialRampToValueAtTime(100, t + 0.8);
+  noise.connect(filter);
+  filter.connect(noiseGain);
+  noiseGain.connect(audioContext.destination);
+  noiseGain.gain.setValueAtTime(0, t);
+  noiseGain.gain.linearRampToValueAtTime(0.4 * volume, t + 0.02);
+  noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.8);
+  noise.start(t);
+  noise.stop(t + 0.8);
+  // Crack
+  const osc = audioContext.createOscillator();
+  const oscGain = audioContext.createGain();
+  osc.connect(oscGain);
+  oscGain.connect(audioContext.destination);
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(120, t);
+  osc.frequency.exponentialRampToValueAtTime(40, t + 0.15);
+  oscGain.gain.setValueAtTime(0, t);
+  oscGain.gain.linearRampToValueAtTime(0.2 * volume, t + 0.01);
+  oscGain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+  osc.start(t);
+  osc.stop(t + 0.2);
+}
+
+function playBird(volume) {
+  const t = audioContext.currentTime;
+  [0, 0.15, 0.28].forEach((offset, i) => {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.type = 'sine';
+    const baseFreq = 2000 + i * 300;
+    osc.frequency.setValueAtTime(baseFreq, t + offset);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, t + offset + 0.06);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.8, t + offset + 0.1);
+    gain.gain.setValueAtTime(0, t + offset);
+    gain.gain.linearRampToValueAtTime(0.12 * volume, t + offset + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + offset + 0.12);
+    osc.start(t + offset);
+    osc.stop(t + offset + 0.13);
+  });
+}
+
+function playGuitarString(volume) {
+  const t = audioContext.currentTime;
+  const strings = [196, 246.94, 329.63, 392];
+  strings.forEach((freq, index) => {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const filter = audioContext.createBiquadFilter();
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.type = 'triangle';
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(2400, t + index * 0.03);
+    filter.Q.setValueAtTime(0.7, t + index * 0.03);
+    osc.frequency.setValueAtTime(freq, t + index * 0.03);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.5, t + index * 0.03 + 0.35);
+    gain.gain.setValueAtTime(0, t + index * 0.03);
+    gain.gain.linearRampToValueAtTime(0.16 * volume, t + index * 0.03 + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + index * 0.03 + 0.9);
+    osc.start(t + index * 0.03);
+    osc.stop(t + index * 0.03 + 0.95);
+  });
+}
+
+function playFlute(volume) {
+  const t = audioContext.currentTime;
+  [523.25, 659.25, 783.99].forEach((freq, index) => {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const filter = audioContext.createBiquadFilter();
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.type = 'sine';
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(freq, t + index * 0.14);
+    filter.Q.setValueAtTime(3.5, t + index * 0.14);
+    osc.frequency.setValueAtTime(freq, t + index * 0.14);
+    osc.frequency.linearRampToValueAtTime(freq * 1.015, t + index * 0.14 + 0.12);
+    gain.gain.setValueAtTime(0, t + index * 0.14);
+    gain.gain.linearRampToValueAtTime(0.14 * volume, t + index * 0.14 + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + index * 0.14 + 0.45);
+    osc.start(t + index * 0.14);
+    osc.stop(t + index * 0.14 + 0.5);
+  });
+}
+
+function playMouthOrgan(volume) {
+  const t = audioContext.currentTime;
+  const chord = [261.63, 329.63, 392.00];
+  chord.forEach((freq, index) => {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const filter = audioContext.createBiquadFilter();
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.type = 'square';
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(900 + index * 140, t);
+    filter.Q.setValueAtTime(0.9, t);
+    osc.frequency.setValueAtTime(freq, t);
+    osc.frequency.linearRampToValueAtTime(freq * 1.01, t + 0.2);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.08 * volume, t + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.9);
+    osc.start(t);
+    osc.stop(t + 1);
+  });
+}
+
+function playWhiteNoise(volume) {
+  const t = audioContext.currentTime;
+  const duration = 0.8;
+  const bufferSize = Math.floor(audioContext.sampleRate * duration);
+  const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+  const data = buffer.getChannelData(0);
+
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * 0.9;
+  }
+
+  const source = audioContext.createBufferSource();
+  const highpass = audioContext.createBiquadFilter();
+  const gain = audioContext.createGain();
+
+  source.buffer = buffer;
+  highpass.type = 'highpass';
+  highpass.frequency.setValueAtTime(1000, t);
+
+  source.connect(highpass);
+  highpass.connect(gain);
+  gain.connect(audioContext.destination);
+
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(0.18 * volume, t + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
+  source.start(t);
+  source.stop(t + duration);
+}
+
+function playBeach(volume) {
+  const t = audioContext.currentTime;
+  const duration = 1.3;
+  const bufferSize = Math.floor(audioContext.sampleRate * duration);
+  const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+  const data = buffer.getChannelData(0);
+
+  for (let i = 0; i < bufferSize; i++) {
+    const time = i / audioContext.sampleRate;
+    const swell = 0.45 + 0.55 * Math.sin(time * Math.PI * 1.6);
+    const surf = Math.exp(-time * 1.8);
+    data[i] = (Math.random() * 2 - 1) * swell * surf;
+  }
+
+  const source = audioContext.createBufferSource();
+  const lowpass = audioContext.createBiquadFilter();
+  const bandpass = audioContext.createBiquadFilter();
+  const gain = audioContext.createGain();
+
+  source.buffer = buffer;
+  lowpass.type = 'lowpass';
+  lowpass.frequency.setValueAtTime(1400, t);
+  lowpass.frequency.exponentialRampToValueAtTime(700, t + duration);
+  bandpass.type = 'bandpass';
+  bandpass.frequency.setValueAtTime(500, t);
+  bandpass.Q.setValueAtTime(0.8, t);
+
+  source.connect(lowpass);
+  lowpass.connect(bandpass);
+  bandpass.connect(gain);
+  gain.connect(audioContext.destination);
+
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(0.16 * volume, t + 0.05);
+  gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
+  source.start(t);
+  source.stop(t + duration);
+}
+
+function playMetal(volume) {
+  const t = audioContext.currentTime;
+  [1200, 2400, 3600].forEach((freq, i) => {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime((0.15 - i * 0.04) * volume, t + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 1.2);
+    osc.start(t);
+    osc.stop(t + 1.2);
+  });
+}
+
 // ==================== NOTIFICATIONS ====================
 function requestNotificationPermission() {
   if (!window.isSecureContext) return;
@@ -751,7 +1318,9 @@ function onTimerComplete() {
   let notificationTitle, notificationBody;
   if (timerState.mode === 'focus') {
     notificationTitle = '🌲 Focus Complete!';
-    notificationBody = 'Great work! Time for a break.';
+    notificationBody = lastIntention
+      ? `Great work! You worked on: ${lastIntention}`
+      : 'Great work! Time for a break.';
     statsState.pomodoros++;
     statsState.focusTime += Math.round(timerState.totalTime / 60000);
 
@@ -780,6 +1349,8 @@ function onTimerComplete() {
   }
 
   showBrowserNotification(notificationTitle, notificationBody);
+  setTimerRunning(false);
+  stopBreathingGuide();
   saveToStorage();
 
   let nextMode;
@@ -813,6 +1384,14 @@ function setMode(mode) {
   clearInterval(timerState.interval);
   timerState.isRunning = false;
 
+  setTimerRunning(false);
+  clearIntention();
+  if (mode === 'focus') {
+    stopBreathingGuide();
+  } else {
+    startBreathingGuide();
+  }
+
   updateTimerType();
   updateDisplay();
   updateProgress();
@@ -834,7 +1413,21 @@ function startTimer() {
   if (timerState.isRunning) return;
   timerState.isRunning = true;
   timerState.startTime = Date.now() - (timerState.totalTime - timerState.remainingTime);
+
+  // Boost animation FPS while timer is running
+  targetAnimationFps = options.lowPowerMode ? 15 : 30;
+  animationFrameInterval = 1000 / targetAnimationFps;
+
   updateButtons();
+
+  // New features: update timer section state
+  setTimerRunning(true);
+  showIntentionBanner();
+  startBreathingGuide();
+  if (timerState.mode === 'focus') {
+    currentSessionDistractions = 0;
+    updateDistractionCount();
+  }
 
   timerState.interval = setInterval(() => {
     const elapsed = Date.now() - timerState.startTime;
@@ -855,7 +1448,15 @@ function pauseTimer() {
   if (!timerState.isRunning) return;
   timerState.isRunning = false;
   clearInterval(timerState.interval);
+
+  // Drop animation FPS while paused
+  targetAnimationFps = options.lowPowerMode ? 15 : 20;
+  animationFrameInterval = 1000 / targetAnimationFps;
+
   updateButtons();
+  setTimerRunning(false);
+  hideIntentionBanner();
+  stopBreathingGuide();
   saveToStorage();
 }
 
@@ -866,6 +1467,9 @@ function resetTimer() {
   updateDisplay();
   updateProgress();
   updateButtons();
+  setTimerRunning(false);
+  hideIntentionBanner();
+  stopBreathingGuide();
   timerDisplay.classList.remove('timer-complete');
   saveToStorage();
 }
@@ -995,18 +1599,21 @@ function addTask() {
   tasks.push({ text, completed: false, createdAt: Date.now() });
   newTaskInput.value = '';
   renderTasks();
+  updateIntentionDropdown();
   saveToStorage();
 }
 
 function toggleTaskComplete(index) {
   tasks[index].completed = !tasks[index].completed;
   renderTasks();
+  updateIntentionDropdown();
   saveToStorage();
 }
 
 function deleteTask(index) {
   tasks.splice(index, 1);
   renderTasks();
+  updateIntentionDropdown();
   saveToStorage();
 }
 
@@ -1126,6 +1733,7 @@ function importTasksFromCSV(file) {
 
       tasks = [...tasks, ...importedTasks];
       renderTasks();
+      updateIntentionDropdown();
       saveToStorage();
 
     } catch (error) {
@@ -1186,7 +1794,7 @@ function applyFocusMode() {
 }
 
 function applyLowPowerMode() {
-  targetAnimationFps = options.lowPowerMode ? 24 : 40;
+  targetAnimationFps = options.lowPowerMode ? 15 : (timerState.isRunning ? 30 : 20);
   animationFrameInterval = 1000 / targetAnimationFps;
   if (lowPowerToggle) lowPowerToggle.checked = options.lowPowerMode;
 
@@ -1196,9 +1804,55 @@ function applyLowPowerMode() {
   saveToStorage();
 }
 
+function applyNoAnimation() {
+  if (noAnimationToggle) noAnimationToggle.checked = options.noAnimation;
+  if (options.noAnimation) {
+    // Stop sky and particle canvases
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
+    if (particlesCtx) particlesCtx.clearRect(0, 0, particlesCanvas.width, particlesCanvas.height);
+    if (skyCtx) skyCtx.clearRect(0, 0, skyCanvas.width, skyCanvas.height);
+    // Hide canvases
+    if (particlesCanvas) particlesCanvas.style.display = 'none';
+    if (skyCanvas) skyCanvas.style.display = 'none';
+  } else {
+    // Restore canvases
+    if (particlesCanvas) particlesCanvas.style.display = '';
+    if (skyCanvas) skyCanvas.style.display = '';
+    lastRenderTime = 0;
+    if (!animationFrameId && !isBreathingStandalone) animateCombined();
+  }
+  document.body.classList.toggle('no-animation', options.noAnimation);
+  saveToStorage();
+}
+
+function setPomodoroStyle(style) {
+  if (!DURATION_PRESETS[style]) return;
+  options.pomodoroStyle = style;
+  const preset = DURATION_PRESETS[style];
+  DURATIONS.focus = preset.focus * 60 * 1000;
+  DURATIONS.short = preset.short * 60 * 1000;
+  DURATIONS.long = preset.long * 60 * 1000;
+
+  // Update current timer if not running
+  if (!timerState.isRunning) {
+    timerState.totalTime = DURATIONS[timerState.mode];
+    timerState.remainingTime = timerState.totalTime;
+    updateDisplay();
+    updateProgress();
+  }
+
+  presetStyleBtns.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.style === style);
+  });
+  saveToStorage();
+}
+
 function scaledParticleCount(baseCount) {
-  const multiplier = options.lowPowerMode ? 0.6 : 1;
-  return Math.max(12, Math.floor(baseCount * multiplier));
+  const multiplier = options.lowPowerMode ? 0.4 : 0.75;
+  return Math.max(8, Math.floor(baseCount * multiplier));
 }
 
 function createMeteorParticle(w, h) {
@@ -1295,7 +1949,7 @@ function resizeSkyCanvas() {
 
 function createStars() {
   stars = [];
-  const starCount = Math.min(70, Math.floor(window.innerWidth * window.innerHeight / 18000));
+  const starCount = Math.min(45, Math.floor(window.innerWidth * window.innerHeight / 25000));
   for (let i = 0; i < starCount; i++) {
     stars.push({
       x: Math.random() * window.innerWidth,
@@ -1436,8 +2090,12 @@ function drawStars(progress) {
 
 // Combined animation loop (optimized)
 function animateCombined(timestamp = 0) {
-  const elapsedMs = lastRenderTime ? (timestamp - lastRenderTime) : animationFrameInterval;
-  if (elapsedMs < animationFrameInterval) {
+  // Dynamic FPS: lower when timer not running
+  const effectiveFps = timerState.isRunning ? targetAnimationFps : Math.min(targetAnimationFps, 20);
+  const effectiveInterval = 1000 / effectiveFps;
+
+  const elapsedMs = lastRenderTime ? (timestamp - lastRenderTime) : effectiveInterval;
+  if (elapsedMs < effectiveInterval) {
     animationFrameId = requestAnimationFrame(animateCombined);
     return;
   }
@@ -1854,16 +2512,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   updateThemeColors();
   applyLowPowerMode();
+  applyNoAnimation();
+  if (options.pomodoroStyle) setPomodoroStyle(options.pomodoroStyle);
   initTimerStars();
   initParticles();
   initSky();
   renderTasks();
+  updateIntentionDropdown();
   updateDisplay();
   updateProgress();
   updateCycle();
   updateStats();
   updateTimerType();
   updateModeButtons();
+
+  if (timerState.mode !== 'focus' && options.breathingGuide) {
+    startBreathingGuide();
+  }
+
+  // Restore intention
+  if (lastIntention && intentionSelect) {
+    updateIntentionDropdown();
+    intentionSelect.value = lastIntention;
+  }
+
+  // Render distraction summary
+  renderDistractionSummary();
+  updateDistractionKPIs();
 
   // Mobile browsers often block audio until explicit user interaction.
   const unlockAudioOnce = () => primeAudioAndNotifications();
@@ -1948,10 +2623,107 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (noAnimationToggle) {
+    noAnimationToggle.checked = options.noAnimation;
+    noAnimationToggle.addEventListener('change', (e) => {
+      options.noAnimation = e.target.checked;
+      applyNoAnimation();
+    });
+  }
+
+  presetStyleBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      setPomodoroStyle(btn.dataset.style);
+    });
+  });
+
   focusExitBtn.addEventListener('click', () => {
     options.focusMode = false;
     applyFocusMode();
   });
+
+  // === Distraction Log ===
+  distractionBtn.addEventListener('click', toggleDistractionPanel);
+
+  distractionAddBtn.addEventListener('click', () => {
+    const text = distractionText.value.trim();
+    if (text) {
+      logDistraction(text, 'other');
+      distractionText.value = '';
+      distractionPanel.hidden = true;
+    }
+  });
+
+  distractionText.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      distractionAddBtn.click();
+    }
+  });
+
+  document.querySelectorAll('.distraction-cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const catLabels = { phone: 'Phone', social: 'Social', email: 'Email', thoughts: 'Thoughts' };
+      const category = btn.dataset.category;
+      logDistraction(catLabels[category] || category, category);
+      distractionPanel.hidden = true;
+    });
+  });
+
+  clearDistractionsBtn.addEventListener('click', clearDistractions);
+
+  // === Session Intention (dropdown) ===
+  if (intentionSelect) {
+    intentionSelect.addEventListener('change', () => {
+      lastIntention = intentionSelect.value || null;
+      saveToStorage();
+    });
+  }
+
+  // === Standalone Breathing ===
+  if (breatheStartBtn) {
+    breatheStartBtn.addEventListener('click', startStandaloneBreathing);
+  }
+  if (breathingStopBtn) {
+    breathingStopBtn.addEventListener('click', stopStandaloneBreathing);
+  }
+
+  // === Onboarding Task Prompt ===
+  if (onboardingAddTaskBtn && onboardingTaskInput) {
+    const addOnboardingTask = () => {
+      const text = onboardingTaskInput.value.trim();
+      if (!text) return;
+      tasks.push({ text, completed: false, createdAt: Date.now() });
+      onboardingTaskInput.value = '';
+      const li = document.createElement('li');
+      li.textContent = text;
+      if (onboardingTaskList) onboardingTaskList.appendChild(li);
+      updateIntentionDropdown();
+      renderTasks();
+      saveToStorage();
+    };
+    onboardingAddTaskBtn.addEventListener('click', addOnboardingTask);
+    onboardingTaskInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addOnboardingTask();
+      }
+    });
+  }
+
+  // === Breathing Guide Toggle ===
+  if (breathingGuideToggle) {
+    breathingGuideToggle.checked = options.breathingGuide;
+    breathingGuideToggle.addEventListener('change', (e) => {
+      options.breathingGuide = e.target.checked;
+      if (options.breathingGuide && timerState.mode !== 'focus') {
+        startBreathingGuide();
+      } else {
+        stopBreathingGuide();
+      }
+      saveToStorage();
+    });
+  }
 
   themeOptions.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -2006,7 +2778,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.addEventListener('keydown', (e) => {
     const isInputFocused = document.activeElement &&
-      (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA');
+      (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT');
 
     if (isInputFocused && e.code !== 'Escape') return;
 
@@ -2035,8 +2807,22 @@ document.addEventListener('DOMContentLoaded', () => {
         options.focusMode = !options.focusMode;
         applyFocusMode();
         break;
+      case 'KeyD':
+        if (timerState.isRunning && timerState.mode === 'focus') {
+          e.preventDefault();
+          toggleDistractionPanel();
+        }
+        break;
       case 'Escape':
         e.preventDefault();
+        if (isBreathingStandalone) {
+          stopStandaloneBreathing();
+          break;
+        }
+        if (distractionPanel && !distractionPanel.hidden) {
+          distractionPanel.hidden = true;
+          break;
+        }
         if (options.focusMode) {
           options.focusMode = false;
           applyFocusMode();
